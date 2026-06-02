@@ -1,0 +1,31 @@
+[
+  {
+    "lat": 51.505,
+    "lng": -0.09,
+    "title": "London",
+    "description": "Die Hauptstadt Englands mit berühmten Sehenswürdigkeiten.",
+    "id": 1776795722065
+  },
+  {
+    "lat": 48.8566,
+    "lng": 2.3522,
+    "title": "Paris",
+    "description": "Die Stadt der Liebe mit dem Eiffelturm und Museen.",
+    "id": 1776795727226
+  },
+  {
+    "lat": 52.52,
+    "lng": 13.405,
+    "title": "Berlin",
+    "description": "Hauptstadt Deutschlands mit reicher Geschichte.",
+    "id": 1776795727236
+  },
+  {
+    "lat": 49.29288913249991,
+    "lng": 10.577087402343752,
+    "title": "Ansbach",
+    "description": "-",
+    "category": "Natur",
+    "id": 1778666013694
+  }
+]
