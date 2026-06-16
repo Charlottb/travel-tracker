@@ -26,6 +26,8 @@ console.log(`   NEXT_PUBLIC_DEBUG_API = ${process.env.NEXT_PUBLIC_DEBUG_API || '
 // 🟢 STEP 2: Helper für die richtige URL
 // ============================================================
 
+import { authFetch } from './authFetch';
+
 function getApiUrl() {
   // Wichtig: Server vs Client unterscheiden!
   if (typeof window === 'undefined') {
@@ -72,7 +74,7 @@ export async function debugFetch(endpoint, options = {}) {
       controller.abort();
     }, 10000);
 
-    const response = await fetch(fullUrl, {
+    const response = await authFetch(fullUrl, {
       ...options,
       headers: {
         'Content-Type': 'application/json',

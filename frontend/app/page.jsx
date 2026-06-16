@@ -1,4 +1,5 @@
-import { headers } from 'next/headers';
+import { cookies, headers } from 'next/headers';
+import { authFetch } from '../lib/authFetch';
 import TravelTrackerApp from '../components/TravelTrackerApp';
 
 export const dynamic = 'force-dynamic';
@@ -18,14 +19,18 @@ function getAppUrl() {
 async function getPlaces() {
   const APP_URL = getAppUrl();
   const url = `${APP_URL.replace(/\/$/, '')}/api/places`;
+  const cookieHeader = cookies().toString();
   
   console.log('[page.jsx] Fetching places from:', url);
   const startTime = Date.now();
 
   try {
-    const response = await fetch(url, {
+    const response = await authFetch(url, {
       cache: 'no-store',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        ...(cookieHeader ? { cookie: cookieHeader } : {}),
+      },
     });
 
     const elapsed = Date.now() - startTime;

@@ -1,4 +1,5 @@
-require('dotenv/config');
+const path = require('path');
+require('dotenv').config({ path: path.join(__dirname, '.env') });
 
 const express = require('express');
 const cors = require('cors');
@@ -27,6 +28,7 @@ app.listen(PORT, () => {
   console.log('   DELETE /places/:id');
   console.log('   POST /api/auth/register');
   console.log('   POST /api/auth/login');
+  console.log('   POST /api/auth/logout');
   console.log('   CORS: Enabled');
   console.log('   Database: SQLite via Prisma');
 });

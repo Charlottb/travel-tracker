@@ -37,6 +37,8 @@ function getApiUrl() {
   return baseUrl;
 }
 
+import { authFetch } from './authFetch';
+
 /**
  * Retry-Logik für flüchtige Fehler (z.B. Server-Start)
  */
@@ -47,7 +49,7 @@ async function retryFetch(url, options = {}, maxRetries = 3) {
     try {
       logger.log(`Fetch attempt ${attempt}/${maxRetries}`, url);
       
-      const response = await fetch(url, {
+      const response = await authFetch(url, {
         timeout: 10000, // 10 Sekunden Timeout
         ...options,
       });

@@ -1,11 +1,16 @@
 'use client';
 
+import dynamic from 'next/dynamic';
 import { useCallback, useState, useEffect } from 'react';
 import Navbar from './Navbar';
-import MapView from './MapView';
 import Sidebar from './Sidebar';
+import { authFetch } from '../lib/authFetch';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || '/api';
+const MapView = dynamic(() => import('./MapView'), {
+  ssr: false,
+  loading: () => <div className="h-full w-full animate-pulse bg-slate-100" />,
+});
 
 // Debug: Zeige URL wenn geladen
 if (typeof window !== 'undefined') {
@@ -65,7 +70,7 @@ export default function TravelTrackerApp({ initialPlaces = [] }) {
       const url = `${API_BASE_URL}/places`;
       console.log('[TravelTrackerApp] POST to', url);
       
-      const response = await fetch(url, {
+      const response = await authFetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(placeData),
@@ -117,7 +122,7 @@ export default function TravelTrackerApp({ initialPlaces = [] }) {
       const url = `${API_BASE_URL}/places/${placeToDelete.id}`;
       console.log('[TravelTrackerApp] DELETE to', url);
       
-      const response = await fetch(url, {
+      const response = await authFetch(url, {
         method: 'DELETE',
       });
 

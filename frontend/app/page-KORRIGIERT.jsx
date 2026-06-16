@@ -1,3 +1,4 @@
+import { authFetch } from '../lib/authFetch';
 import TravelTrackerApp from '../components/TravelTrackerApp';
 
 /**
@@ -30,7 +31,7 @@ async function getPlaces() {
   try {
     console.log('[page.jsx] Fetching places from:', fetchUrl);
 
-    const response = await fetch(fetchUrl, {
+    const response = await authFetch(fetchUrl, {
       method: 'GET',
       headers: { 'Content-Type': 'application/json' },
       cache: 'no-store', // ⚠️ WICHTIG: Keine Cache-Probleme

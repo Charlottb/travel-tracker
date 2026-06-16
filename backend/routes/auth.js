@@ -2,9 +2,11 @@ const express = require('express');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const prisma = require('../lib/prisma');
+const authenticate = require('../middleware/authenticate');
 
 const router = express.Router();
 const INVALID_CREDENTIALS_MESSAGE = 'E-Mail oder Passwort ungültig.';
+const EMAIL_TAKEN_MESSAGE = 'E-Mail ist bereits vergeben.';
 
 function getJwtSecret() {
   if (!process.env.JWT_SECRET) {
@@ -14,14 +16,26 @@ function getJwtSecret() {
   return process.env.JWT_SECRET;
 }
 
+function getAuthCookieOptions() {
+  const isProduction = process.env.NODE_ENV === 'production';
+
+  return {
+    httpOnly: true,
+    sameSite: isProduction ? 'none' : 'lax',
+    secure: isProduction,
+    path: '/',
+  };
+}
+
 function setAuthCookie(res, token) {
   res.cookie('authToken', token, {
-    httpOnly: true,
-    sameSite: 'lax',
-    secure: process.env.NODE_ENV === 'production',
+    ...getAuthCookieOptions(),
     maxAge: 24 * 60 * 60 * 1000,
-    path: '/',
   });
+}
+
+function isEmailAlreadyTaken(error) {
+  return error.code === 'P2002' && error.meta?.target?.includes('email');
 }
 
 router.post('/register', async (req, res) => {
@@ -45,7 +59,7 @@ router.post('/register', async (req, res) => {
     });
 
     if (existingUser) {
-      return res.status(409).json({ error: 'E-Mail ist bereits vergeben.' });
+      return res.status(409).json({ error: EMAIL_TAKEN_MESSAGE });
     }
 
     const passwordHash = await bcrypt.hash(password, 12);
@@ -64,6 +78,10 @@ router.post('/register', async (req, res) => {
 
     return res.status(201).json({ user });
   } catch (error) {
+    if (isEmailAlreadyTaken(error)) {
+      return res.status(409).json({ error: EMAIL_TAKEN_MESSAGE });
+    }
+
     console.error('[Auth] register failed:', {
       message: error.message,
       code: error.code,
@@ -124,6 +142,15 @@ router.post('/login', async (req, res) => {
 
     return res.status(500).json({ error: 'Login fehlgeschlagen.' });
   }
+});
+
+router.post('/logout', (_req, res) => {
+  res.clearCookie('authToken', getAuthCookieOptions());
+  return res.json({ success: true });
+});
+
+router.get('/me', authenticate, (req, res) => {
+  return res.json({ user: req.user });
 });
 
 module.exports = router;

@@ -11,7 +11,16 @@ async function readError(response) {
   return text || response.statusText || 'Unknown API error';
 }
 
-export async function GET() {
+function getBackendHeaders(request, headers = {}) {
+  const cookie = request.headers.get('cookie');
+
+  return {
+    ...headers,
+    ...(cookie ? { cookie } : {}),
+  };
+}
+
+export async function GET(request) {
   const url = getBackendPlacesUrl();
   console.log('[api/places] GET ->', url);
 
@@ -19,7 +28,7 @@ export async function GET() {
     const response = await fetch(url, {
       method: 'GET',
       cache: 'no-store',
-      headers: { Accept: 'application/json' },
+      headers: getBackendHeaders(request, { Accept: 'application/json' }),
     });
 
     console.log('[api/places] Backend response:', response.status, response.statusText);
@@ -62,7 +71,10 @@ export async function POST(request) {
     const response = await fetch(url, {
       method: 'POST',
       cache: 'no-store',
-      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      headers: getBackendHeaders(request, {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+      }),
       body: JSON.stringify(body),
     });
 

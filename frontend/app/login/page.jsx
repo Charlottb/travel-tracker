@@ -1,11 +1,11 @@
 'use client';
 
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
-const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001';
-
 export default function LoginPage() {
+  const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -16,21 +16,33 @@ export default function LoginPage() {
     setError('');
     setIsSubmitting(true);
 
+    const formData = new FormData(event.currentTarget);
+    const formEmail = String(formData.get('email') ?? '').trim();
+    const formPassword = String(formData.get('password') ?? '');
+
+    setEmail(formEmail);
+    setPassword(formPassword);
+
     try {
-      const response = await fetch(`${BACKEND_URL}/api/auth/login`, {
+      const response = await fetch('/api/auth/login', {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email: formEmail, password: formPassword }),
       });
 
+      const data = await response.json().catch(() => ({}));
+
       if (!response.ok) {
-        const data = await response.json().catch(() => ({}));
-        setError(data.error || 'Login fehlgeschlagen.');
+        if (response.status === 401) {
+          setError(data.error || 'E-Mail oder Passwort ungültig.');
+        } else {
+          setError(data.error || 'Login fehlgeschlagen.');
+        }
         return;
       }
 
-      window.location.href = '/';
+      router.push('/');
     } catch (err) {
       console.error('[LoginPage] Login failed:', err);
       setError('Login fehlgeschlagen.');
@@ -44,25 +56,29 @@ export default function LoginPage() {
       <section className="w-full max-w-sm rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
         <h1 className="text-2xl font-semibold">Login</h1>
 
-        <form className="mt-6 space-y-4" onSubmit={handleSubmit}>
-          <label className="block">
+        <form className="mt-6 space-y-4" onSubmit={handleSubmit} autoComplete="on">
+          <label htmlFor="email" className="block">
             <span className="text-sm font-medium text-slate-700">E-Mail</span>
             <input
+              id="email"
+              name="email"
               className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none focus:border-slate-900"
               type="email"
-              value={email}
+              defaultValue={email}
               onChange={(event) => setEmail(event.target.value)}
-              autoComplete="email"
+              autoComplete="username"
               required
             />
           </label>
 
-          <label className="block">
+          <label htmlFor="password" className="block">
             <span className="text-sm font-medium text-slate-700">Passwort</span>
             <input
+              id="password"
+              name="password"
               className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none focus:border-slate-900"
               type="password"
-              value={password}
+              defaultValue={password}
               onChange={(event) => setPassword(event.target.value)}
               autoComplete="current-password"
               required

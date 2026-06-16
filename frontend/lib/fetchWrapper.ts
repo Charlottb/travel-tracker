@@ -1,3 +1,5 @@
+import { authFetch } from './authFetch';
+
 /**
  * TypeScript Version des API Client mit zusätzlicher Typsicherheit
  * Optional: Nutze diesen statt apiClient.js wenn du TypeScript bevorzugst
@@ -59,7 +61,7 @@ async function retryFetch(
       const timeout = options.timeout || 10000;
       const timeoutId = setTimeout(() => controller.abort(), timeout);
 
-      const response = await fetch(url, {
+      const response = await authFetch(url, {
         ...options,
         signal: controller.signal,
       });

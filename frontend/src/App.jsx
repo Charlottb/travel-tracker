@@ -2,6 +2,7 @@ import React, { useState, useCallback } from "react";
 import MapView from "./MapView";
 import Sidebar from "./Sidebar";
 import Navbar from "./Navbar";
+import { authFetch } from "../lib/authFetch";
 
 function App() {
   // Main state
@@ -14,7 +15,7 @@ function App() {
 
   // Load places on mount
   React.useEffect(() => {
-    fetch("http://localhost:3000/places")
+    authFetch("http://localhost:3000/places")
       .then((response) => response.json())
       .then((data) => setPlaces(data))
       .catch((error) => console.error("Error fetching places:", error));
@@ -51,7 +52,7 @@ function App() {
 
   // Handle form submit - save new place
   const handleSavePlace = useCallback((placeData) => {
-    fetch("http://localhost:3000/places", {
+    authFetch("http://localhost:3000/places", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(placeData),
@@ -77,7 +78,7 @@ function App() {
       return;
     }
 
-    fetch(`http://localhost:3000/places/${placeToDelete.id}`, {
+    authFetch(`http://localhost:3000/places/${placeToDelete.id}`, {
       method: "DELETE",
     })
       .then((response) => {

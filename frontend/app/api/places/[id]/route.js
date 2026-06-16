@@ -11,14 +11,16 @@ async function readError(response) {
   return text || response.statusText || 'Unknown API error';
 }
 
-export async function DELETE(_request, { params }) {
+export async function DELETE(request, { params }) {
   const url = getBackendPlaceUrl(params.id);
   console.log('[api/places/[id]] DELETE ->', url);
 
   try {
+    const cookie = request.headers.get('cookie');
     const response = await fetch(url, {
       method: 'DELETE',
       cache: 'no-store',
+      headers: cookie ? { cookie } : {},
     });
 
     console.log('[api/places/[id]] Backend response:', response.status, response.statusText);

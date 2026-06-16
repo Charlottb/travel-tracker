@@ -1,29 +1,17 @@
 const express = require('express');
+const authenticate = require('../middleware/authenticate');
 const prisma = require('../lib/prisma');
 
 const router = express.Router();
 
-const DEFAULT_USER = {
-  email: 'demo@example.com',
-  name: 'Demo User',
-};
-
-async function getDefaultUser() {
-  return prisma.user.upsert({
-    where: { email: DEFAULT_USER.email },
-    update: {},
-    create: {
-      ...DEFAULT_USER,
-      passwordHash: '',
-    },
-  });
-}
-
-router.get('/', async (_req, res) => {
+router.get('/', authenticate, async (req, res) => {
   try {
-    console.log('[Backend] GET /places - Fetching from SQLite via Prisma...');
+    console.log('[Backend] GET /places - Fetching user-owned places from SQLite via Prisma...', {
+      userId: req.user.userId,
+    });
 
     const places = await prisma.place.findMany({
+      where: { userId: req.user.userId },
       orderBy: { id: 'asc' },
       include: {
         user: {
@@ -36,7 +24,7 @@ router.get('/', async (_req, res) => {
       },
     });
 
-    console.log(`[Backend] Found ${places.length} places`);
+    console.log(`[Backend] Found ${places.length} places for user ${req.user.userId}`);
     res.json(places);
   } catch (error) {
     console.error('[Backend] GET /places Error:', {
@@ -48,7 +36,7 @@ router.get('/', async (_req, res) => {
   }
 });
 
-router.post('/', async (req, res) => {
+router.post('/', authenticate, async (req, res) => {
   try {
     console.log('[Backend] POST /places - Body:', req.body);
 
@@ -66,7 +54,6 @@ router.post('/', async (req, res) => {
       });
     }
 
-    const user = await getDefaultUser();
     const newPlace = await prisma.place.create({
       data: {
         lat,
@@ -74,7 +61,7 @@ router.post('/', async (req, res) => {
         title: title.trim(),
         description: typeof description === 'string' ? description : null,
         category: typeof category === 'string' ? category : null,
-        userId: user.id,
+        userId: req.user.userId,
       },
       include: {
         user: {
@@ -99,7 +86,7 @@ router.post('/', async (req, res) => {
   }
 });
 
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', authenticate, async (req, res) => {
   try {
     const id = Number(req.params.id);
     console.log('[Backend] DELETE /places/:id -', id);
@@ -109,18 +96,21 @@ router.delete('/:id', async (req, res) => {
       return res.status(400).json({ error: 'Ungueltige ID' });
     }
 
-    await prisma.place.delete({
-      where: { id },
+    const result = await prisma.place.deleteMany({
+      where: {
+        id,
+        userId: req.user.userId,
+      },
     });
+
+    if (result.count === 0) {
+      console.error('[Backend] DELETE /places - Not found or not owned:', id);
+      return res.status(404).json({ error: 'Ort nicht gefunden' });
+    }
 
     console.log(`[Backend] DELETE /places - Deleted from SQLite: ${id}`);
     res.json({ success: true });
   } catch (error) {
-    if (error.code === 'P2025') {
-      console.error('[Backend] DELETE /places - Not found:', req.params.id);
-      return res.status(404).json({ error: 'Ort nicht gefunden' });
-    }
-
     console.error('[Backend] DELETE /places Error:', {
       message: error.message,
       code: error.code,
