@@ -7,7 +7,8 @@
     "import:places": "node scripts/import-places-json.js",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
-    "prisma:studio": "prisma studio"
+    "prisma:studio": "prisma studio",
+    "test": "vitest run"
   },
   "dependencies": {
     "@prisma/adapter-better-sqlite3": "^7.8.0",
@@ -22,6 +23,8 @@
   "devDependencies": {
     "@prisma/config": "^7.8.0",
     "dotenv": "^17.4.2",
-    "prisma": "^7.8.0"
+    "prisma": "^7.8.0",
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.9"
   }
 }

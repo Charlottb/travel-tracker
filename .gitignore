@@ -78,6 +78,10 @@ web_modules/
 .next
 out
 
+# Cypress output
+frontend/cypress/videos
+frontend/cypress/screenshots
+
 # Nuxt.js build / generate output
 .nuxt
 dist

@@ -3,6 +3,7 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const prisma = require('../lib/prisma');
 const authenticate = require('../middleware/authenticate');
+const { normalizeEmail, isValidEmail, isValidPassword } = require('../lib/validation');
 
 const router = express.Router();
 const INVALID_CREDENTIALS_MESSAGE = 'E-Mail oder Passwort ungültig.';
@@ -42,18 +43,13 @@ router.post('/register', async (req, res) => {
   try {
     const { email, password, name } = req.body;
 
-    if (
-      typeof email !== 'string' ||
-      typeof password !== 'string' ||
-      email.trim() === '' ||
-      password.length < 8
-    ) {
+    if (!isValidEmail(email) || !isValidPassword(password)) {
       return res.status(400).json({
         error: 'E-Mail und Passwort sind erforderlich. Das Passwort muss mindestens 8 Zeichen lang sein.',
       });
     }
 
-    const normalizedEmail = email.trim().toLowerCase();
+    const normalizedEmail = normalizeEmail(email);
     const existingUser = await prisma.user.findUnique({
       where: { email: normalizedEmail },
     });

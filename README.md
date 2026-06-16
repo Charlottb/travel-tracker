@@ -54,6 +54,24 @@ Die CRUD-Handler fuer `places` wurden von Mock-/JSON-Daten auf Prisma-Queries um
 
 Die alten Orte aus `backend/places.json` wurden einmalig mit `npm run import:places` in die SQLite-Datenbank importiert.
 
+## Test-Pyramide
+
+Ebene | Was testen wir bei uns? | Tool
+--- | --- | ---
+Unit | Validierungslogik für E-Mail/Passwort und korrekte Eingaben | Vitest
+Integration | `POST /api/auth/login`/`register` und `GET /places` mit Auth-Token | Vitest
+E2E | Login-Flow, Registrieren und Seiten-Weiterleitung | Cypress
+
+Kernrisiken:
+
+1. Authentifizierung und Token-Prüfung: Wenn Login/Logout oder JWT-Verifikation brechen, können Nutzer nicht mehr auf ihre eigenen Orte zugreifen.
+2. Ownership/DB-Filter: Wenn die `userId`-Prüfung in `GET /places`/`DELETE /places/:id` ausfällt, könnten Nutzer fremde Daten sehen oder löschen.
+
+## Test-Iterationen
+
+1. Erste Iteration: Testpyramide und Unit-Tests planen; reine Validierungsfunktionen extrahieren und mit Vitest absichern.
+2. Zweite Iteration: Cypress für End-to-End-Tests installieren und den kritischen Login-/Registrierungsflow inklusive Fehlermeldung absichern.
+
 ## Prompt-Iterationen
 
 1. Erste Iteration: Prisma mit SQLite einrichten und das Datenmodell `users` und `places` als verknuepfte Modelle beschreiben.

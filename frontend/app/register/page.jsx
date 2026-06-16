@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
+import { isValidEmail, isValidPassword } from '../../lib/validation';
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -24,6 +25,11 @@ export default function RegisterPage() {
     setPassword(formPassword);
 
     try {
+      if (!isValidEmail(formEmail) || !isValidPassword(formPassword)) {
+        setError('E-Mail oder Passwort ungültig.');
+        return;
+      }
+
       const response = await fetch('/api/auth/register', {
         method: 'POST',
         credentials: 'include',
@@ -62,6 +68,7 @@ export default function RegisterPage() {
             <input
               id="register-email"
               name="email"
+              data-cy="register-email"
               className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none focus:border-slate-900"
               type="email"
               defaultValue={email}
@@ -76,6 +83,7 @@ export default function RegisterPage() {
             <input
               id="register-password"
               name="password"
+              data-cy="register-password"
               className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none focus:border-slate-900"
               type="password"
               defaultValue={password}
@@ -86,9 +94,10 @@ export default function RegisterPage() {
             />
           </label>
 
-          {error && <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
+          {error && <p data-cy="error-message" className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
 
           <button
+            data-cy="register-submit"
             className="w-full rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white disabled:cursor-not-allowed disabled:bg-slate-400"
             type="submit"
             disabled={isSubmitting}
