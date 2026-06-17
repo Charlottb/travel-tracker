@@ -1,0 +1,126 @@
+const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
+const prisma = require('../../lib/prisma');
+const { normalizeEmail, isValidEmail, isValidPassword } = require('../../lib/validation');
+
+const INVALID_CREDENTIALS_MESSAGE = 'E-Mail oder Passwort ungültig.';
+const EMAIL_TAKEN_MESSAGE = 'E-Mail ist bereits vergeben.';
+
+function getJwtSecret() {
+  if (!process.env.JWT_SECRET) {
+    throw new Error('JWT_SECRET is missing in .env');
+  }
+
+  return process.env.JWT_SECRET;
+}
+
+function getAuthCookieOptions() {
+  const isProduction = process.env.NODE_ENV === 'production';
+
+  return {
+    httpOnly: true,
+    sameSite: isProduction ? 'none' : 'lax',
+    secure: isProduction,
+    path: '/',
+  };
+}
+
+function setAuthCookie(res, token) {
+  res.cookie('authToken', token, {
+    ...getAuthCookieOptions(),
+    maxAge: 24 * 60 * 60 * 1000,
+  });
+}
+
+function validateRegisterData({ email, password }) {
+  if (!isValidEmail(email) || !isValidPassword(password)) {
+    const error = new Error('E-Mail und Passwort sind erforderlich. Das Passwort muss mindestens 8 Zeichen lang sein.');
+    error.name = 'ValidationError';
+    throw error;
+  }
+}
+
+function createConflictError(message) {
+  const error = new Error(message);
+  error.name = 'ConflictError';
+  return error;
+}
+
+async function registerUser({ email, password, name }) {
+  validateRegisterData({ email, password });
+
+  const normalizedEmail = normalizeEmail(email);
+  const existingUser = await prisma.user.findUnique({
+    where: { email: normalizedEmail },
+  });
+
+  if (existingUser) {
+    throw createConflictError(EMAIL_TAKEN_MESSAGE);
+  }
+
+  const passwordHash = await bcrypt.hash(password, 12);
+  return prisma.user.create({
+    data: {
+      email: normalizedEmail,
+      name: typeof name === 'string' && name.trim() ? name.trim() : normalizedEmail,
+      passwordHash,
+    },
+    select: {
+      id: true,
+      email: true,
+      name: true,
+    },
+  });
+}
+
+async function loginUser({ email, password }) {
+  if (typeof email !== 'string' || typeof password !== 'string') {
+    const error = new Error(INVALID_CREDENTIALS_MESSAGE);
+    error.name = 'ValidationError';
+    throw error;
+  }
+
+  const normalizedEmail = email.trim().toLowerCase();
+  const user = await prisma.user.findUnique({
+    where: { email: normalizedEmail },
+  });
+
+  if (!user || !user.passwordHash) {
+    const error = new Error(INVALID_CREDENTIALS_MESSAGE);
+    error.name = 'ValidationError';
+    throw error;
+  }
+
+  const passwordMatches = await bcrypt.compare(password, user.passwordHash);
+
+  if (!passwordMatches) {
+    const error = new Error(INVALID_CREDENTIALS_MESSAGE);
+    error.name = 'ValidationError';
+    throw error;
+  }
+
+  const token = jwt.sign(
+    {
+      userId: user.id,
+      email: user.email,
+    },
+    getJwtSecret(),
+    { expiresIn: '24h' },
+  );
+
+  return {
+    token,
+    user: {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+    },
+  };
+}
+
+module.exports = {
+  registerUser,
+  loginUser,
+  setAuthCookie,
+  getAuthCookieOptions,
+};

@@ -10,6 +10,61 @@ Unsere App verwendet Next.js mit Server-Side Rendering (SSR), da SEO für die Re
 
 **Beobachtung:** Die App erfordert sowohl gute SEO für die Reiseorte als auch hohe Interaktivität durch Karten und Formulare.
 
+## Backend Refactor: Bestandsaufnahme und Modulgrenzen
+
+### Dateien vor dem Refactor
+- `backend/server.js`
+  - Verantwortlich für Express-App-Setup, CORS, Cookie-Parser, SSE-Endpoint, socket.io und das Mounten der Router.
+  - Greift nicht direkt auf Prisma zu, sondern verbindet HTTP mit den passenden Modulen.
+- `backend/routes/auth.js` (legacy)
+  - Verantwortlich für `POST /api/auth/register`, `POST /api/auth/login`, `POST /api/auth/logout`, `GET /api/auth/me`.
+  - Enthält Validierung, Passwort-Hashing, JWT-Erzeugung, Cookie-Optionen und direkte `prisma.user`-Abfragen.
+  - Zugriff auf `user`-Daten gehört zum Auth-Kontext, nicht zur HTTP-Route.
+- `backend/routes/places.js` (legacy)
+  - Verantwortlich für `GET /places`, `POST /places`, `DELETE /places/:id`.
+  - Enthält HTTP-Validation, Prisma-Queries, SSE-Broadcast und E-Mail-Queue-Trigger.
+  - Greift auf `place`-Daten und über `include` auf `user`-Daten zu; diese Mischverantwortung sollte in eine Service-Schicht.
+
+### Neue modulare Struktur
+- `backend/modules/auth/auth.routes.js` — NUR HTTP-Logik, delegiert an `auth.service.js`.
+- `backend/modules/auth/auth.service.js` — NUR Geschäftslogik für Auth / User.
+- `backend/modules/places/places.routes.js` — NUR HTTP-Logik für Place-Endpoints.
+- `backend/modules/places/places.service.js` — NUR Geschäftslogik für Place-Verwaltung, E-Mail-Queue und SSE.
+
+### Bounded Contexts
+- Auth/User Context
+  - Begriffe: User, Registrierung, Login, JWT, Session.
+  - Daten: `user`-Tabelle, Passwort-Hashes, Authentifizierungs-Token.
+- Place Management Context
+  - Begriffe: Place, Ort, Kategorie, Koordinaten, Ownership.
+  - Daten: `place`-Tabelle, Zuordnung zu `userId`.
+- Notification/Realtime Context
+  - Begriffe: E-Mail, Queue, SSE-Event, Broadcast.
+  - Daten: keine eigene Persistenz, intern: E-Mail-Template, Queue-Verarbeitung, Event-Verteilung.
+
+### Kommunikation zwischen Kontexten
+- Place Management braucht vom Auth/User-Kontext die `userId` und die Gewissheit, dass der Request authentifiziert ist. Auth liefert Identität, aber keine Place-Details.
+- Place Management gibt an Notification/Realtime Kontext Place-Ereignisse und Nutzerkontaktinformationen weiter, aber es überlässt das Versand-/Broadcasting-Verhalten dem Notification-Bereich.
+- Auth/User benötigt keine internen Place-Daten, sondern nur die Authentifizierungsinformationen des Users.
+
+### Service-Schnittstellen
+`auth.service.js`
+  öffentlich: `registerUser()`, `loginUser()`, `setAuthCookie()`, `getAuthCookieOptions()`
+  intern: `validateRegisterData()`, `getJwtSecret()`
+
+`places.service.js`
+  öffentlich: `getPlacesForUser()`, `createPlace()`, `deletePlace()`
+  intern: `validatePlaceData()`, `buildPlacePayload()`
+
+### Agenten-Analyse: Geschäftslogik in Route-Handlern
+- `routes/auth.js` enthielt Validierungslogik, Benutzererstellung, Passwort-Hashing und Token-Handling, die besser in `auth.service.js` gehören.
+- `routes/places.js` enthielt Validierung, Prisma-Queries, SSE-Broadcast und E-Mail-Queue-Trigger. Diese Bereiche sollten in `places.service.js` landen, damit die Route-Handler dünn bleiben.
+- `routes/places.js` hat außerdem direkten Zugriff auf die `user`-Daten via `include`; das ist ein Hinweis auf eine Grenzüberquerung zwischen Place Management und User/Authentication.
+
+### Prompt-Iterationen für den Refactor
+1. Erste Iteration: Route-Handler in `auth.js` und `places.js` analysieren, die wichtigsten Prisma-Abfragen in Service-Dateien auslagern und die HTTP-Fehlerlogik im Route-Layer belassen.
+2. Zweite Iteration: Fehlerklassifikation mit `error.name` (`ValidationError`, `ConflictError`) präzisieren, den Service-Layer so gestalten, dass er nur Domänenoperationen zurückgibt, und die Route-Dateien rein auf Statuscodes/JSON-Antworten beschränken.
+
 ## Echtzeit-Kommunikation
 
 **Gibt es Daten in eurer App, die sich ändern können, während ein anderer Nutzer die Seite offen hat?**
@@ -37,6 +92,7 @@ In der aktuellen Architektur dürften es im Realbetrieb eher wenige Dutzend bis 
 ### Prompt-Iterationen
 - SSE erste Iteration: allgemeine Anforderung formuliert. Zweite Iteration: konkretes Event `place-created` benannt und die Anforderung zur Liste-Aktualisierung ohne Reload präzisiert.
 - WebSockets erste Iteration: Beschreibung des generischen Broadcasts. Zweite Iteration: konkretes Event `new-place`, Verwendung von `socket.broadcast.emit` und exakte Aktualisierungslogik im Frontend ergänzt.
+- E-Mail erste Iteration: Resend + React Email Template anstoßen. Zweite Iteration: Template konkretisiert mit Ortstitel, Nutzername, Deep Link, und Backend-Queue, damit der Request nicht auf den Mailversand warten muss.
 
 ### SSE vs WebSockets
 Kriterium | SSE | WebSockets
@@ -51,7 +107,27 @@ Warum? | Die App benötigt vor allem Server-Updates, wenn andere Nutzer neue Ort
 Verbundene Clients verlieren die Verbindung. `EventSource` reconnectt automatisch nach dem Neustart, und socket.io bemüht sich ebenfalls um Reconnect. Während der Downtime gehen währenddessen eintreffende Aktualisierungen verloren, die nach Wiederverbindung nicht automatisch nachgeholt werden.
 
 ### Agenten-Einschätzung
-Langfristig würden in dieser App vor allem kollaborative Änderungen wie Reiseort-Updates, gemeinsame Listen oder Benachrichtigungen von mehreren Nutzern von Echtzeit-Kommunikation profitieren. Reines Lesen und gelegentliches Anlegen von Orten ist dagegen einfacher und ehrlicher mit Polling alle 5 Sekunden gelöst, weil die Datenmenge niedrig ist und es keine zwingende Live-Interaktion wie bei Chat oder Multiplayer gibt. Ich stimme der Einschätzung zu: Echtzeit ist lehrreich und wertvoll für Benutzerfeedback, aber es ist nicht die technisch notwendige Grundlage für die Kernfunktionalität.
+In dieser App profitieren vor allem kollaborative Änderungen wie Orte, die von mehreren Nutzern gleichzeitig erstellt oder geteilt werden, von Echtzeit-Kommunikation. Einzelne Lesezugriffe auf die Place-Liste oder persönliche Orterstellung sind dagegen eher geeignet für einfaches Polling, weil die Datenmenge klein ist und der Nutzer kein sofortiges Feedback wie bei einem Chat erwartet. Da unser Frontend bisher vor allem neue Orte anlegt und die Liste lädt, würde ein 5-Sekunden-Polling hier ehrlicher sein, wenn die App keine echte Multi-User-Kollaboration braucht. Ich stimme der Einschätzung zu: Echtzeit ist für dieses Projekt nützlich, aber nicht zwingend, solange die Aktualisierungsanforderung moderat bleibt.
+
+### Benachrichtigungsanalyse
+Event | AppNotification sinnvoll? | Typ | Kanal | Begründung
+--- | --- | --- | --- | ---
+Neuer Ort angelegt | Teilweise | Transactional | E-Mail | Aktuell gibt es keine direkte Teilen/Zuordnung, deshalb ist eine Bestätigung an den Ersteller sinnvoll; der Ort-Owner muss das Ergebnis nachvollziehen können.
+Ort gelöscht | Nein | - | keiner | In der aktuellen App betrifft Löschen nur den eigenen Nutzer, eine zusätzliche Notification wäre redundant.
+Passwort geändert / Login | Nein | - | keiner | Es gibt noch keine expliziten Sicherheitsflows in der App, und Login/Aktualisierung geschieht lokal.
+
+- Gibt es Events, bei denen der Nutzer sofort reagieren muss – oder reicht eine Mail, die er später liest? 
+  - In unserem Modell reicht eine Mail später; es gibt keinen dringenden Assign- oder Sicherheits-Alarm, der unmittelbares Handeln erfordert.
+- Habt ihr Marketing-Content geplant, der ein explizites Opt-in braucht? 
+  - Nein, es gibt keinen Marketing-Content im aktuellen Projekt.
+- Wie viele verschiedene Events würden pro Stunde realistisch Notifications auslösen? 
+  - Realistisch sind es wenige E-Mail-Events pro Stunde, typischerweise 0–5 bei aktiver Nutzung; es handelt sich nicht um eine hochfrequente Benachrichtigungsplattform.
+
+**Kanalentscheidung**
+Wir setzen für den ersten Event `Neuer Ort angelegt` auf Transactional E-Mail, weil dies eine klare Nutzerbestätigung liefert und keinen aktiven Push-Kanal erfordert. Web Push wäre aktuell overkill, weil das App-Design keine echte Multi-User-Zusammenarbeit oder zeitkritische Zuweisung enthält.
+
+**Implementierung**
+Die E-Mail wird in `backend/lib/emailQueue.js` asynchron in eine lokale Queue gelegt und nicht im `POST /places`-Handler synchron versendet. Das Template wird mit React Email gebaut und der API-Key aus `backend/.env` geladen. Die Mail enthält den Ortstitel, die Kategorie, die Koordinaten und einen direkten Deep Link zum Landing-Page-Dashboard mit `?place=<id>`.
 
 ## Ressourcen und API-Struktur
 

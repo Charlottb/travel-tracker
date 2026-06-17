@@ -9,6 +9,7 @@ export default function Sidebar({
   places = [],
   selectedPlace = null,
   formCoords = null,
+  highlightPlaceId = null,
   onPlaceCardClick = () => {},
   onSavePlace = () => {},
   onEditPlace = () => {},
@@ -26,7 +27,9 @@ export default function Sidebar({
         </h2>
       </div>
       <div className="flex-1 overflow-y-auto p-5">
-        {mode === 'list' && <PlacesList places={places} onPlaceClick={onPlaceCardClick} />}
+        {mode === 'list' && (
+          <PlacesList places={places} onPlaceClick={onPlaceCardClick} highlightPlaceId={highlightPlaceId} />
+        )}
         {mode === 'detail' && selectedPlace && (
           <PlaceDetail
             place={selectedPlace}
@@ -40,7 +43,7 @@ export default function Sidebar({
             <AddPlaceForm coords={formCoords} onSave={onSavePlace} onCancel={onCloseForm} />
             <div className="mt-8 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
               <h3 className="mb-4 text-sm font-semibold uppercase tracking-[0.2em] text-slate-500">Bestehende Orte</h3>
-              <PlacesList places={places} onPlaceClick={onPlaceCardClick} />
+              <PlacesList places={places} onPlaceClick={onPlaceCardClick} highlightPlaceId={highlightPlaceId} />
             </div>
             {selectedPlace && (
               <div className="mt-8 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">

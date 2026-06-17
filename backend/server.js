@@ -6,8 +6,8 @@ const express = require('express');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
 const { Server } = require('socket.io');
-const authRouter = require('./routes/auth');
-const placesRouter = require('./routes/places');
+const authRouter = require('./modules/auth/auth.routes');
+const placesRouter = require('./modules/places/places.routes');
 const { registerClient, removeClient } = require('./lib/sse');
 
 const app = express();

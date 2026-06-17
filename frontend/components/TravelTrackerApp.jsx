@@ -19,12 +19,14 @@ if (typeof window !== 'undefined') {
   console.log('[TravelTrackerApp] Client-side API URL:', API_BASE_URL);
 }
 
-export default function TravelTrackerApp({ initialPlaces = [] }) {
+export default function TravelTrackerApp({ initialPlaces = [], currentUser = null }) {
   const [places, setPlaces] = useState(initialPlaces);
+  const [currentUserState, setCurrentUserState] = useState(currentUser);
   const [selectedPlace, setSelectedPlace] = useState(null);
   const [sidebarMode, setSidebarMode] = useState('list');
   const [formCoords, setFormCoords] = useState(null);
   const [activeNav, setActiveNav] = useState('karte');
+  const [highlightPlaceId, setHighlightPlaceId] = useState(null);
   
   // ✅ NEW: Error State für User Feedback
   const [error, setError] = useState(null);
@@ -111,6 +113,27 @@ export default function TravelTrackerApp({ initialPlaces = [] }) {
       console.log('[TravelTrackerApp] SSE connection closed');
     };
   }, [refreshPlaces]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return undefined;
+    }
+
+    const url = new URL(window.location.href);
+    const placeId = url.searchParams.get('place');
+
+    if (placeId) {
+      setHighlightPlaceId(placeId);
+      window.requestAnimationFrame(() => {
+        const element = document.getElementById(`place-${placeId}`);
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      });
+    }
+
+    return undefined;
+  }, [places.length]);
 
   const handleMapClick = useCallback((latlng) => {
     setFormCoords(latlng);
@@ -269,12 +292,18 @@ export default function TravelTrackerApp({ initialPlaces = [] }) {
         />
       </div>
       <div className="flex w-full flex-col lg:w-[420px]">
-        <Navbar activeNav={activeNav} setActiveNav={setActiveNav} onAddPlace={handleOpenAddPlace} />
+        <Navbar
+          activeNav={activeNav}
+          setActiveNav={setActiveNav}
+          onAddPlace={handleOpenAddPlace}
+          user={currentUserState}
+        />
         <Sidebar
           mode={sidebarMode}
           places={places}
           selectedPlace={selectedPlace}
           formCoords={formCoords}
+          highlightPlaceId={highlightPlaceId}
           onPlaceCardClick={handlePlaceCardClick}
           onSavePlace={handleSavePlace}
           onDeletePlace={handleDeletePlace}

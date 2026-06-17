@@ -1,5 +1,4 @@
 import { cookies, headers } from 'next/headers';
-import { authFetch } from '../lib/authFetch';
 import TravelTrackerApp from '../components/TravelTrackerApp';
 
 export const dynamic = 'force-dynamic';
@@ -25,7 +24,8 @@ async function getPlaces() {
   const startTime = Date.now();
 
   try {
-    const response = await authFetch(url, {
+    const response = await fetch(url, {
+      method: 'GET',
       cache: 'no-store',
       headers: {
         'Content-Type': 'application/json',
@@ -57,13 +57,40 @@ async function getPlaces() {
   }
 }
 
+async function getCurrentUser() {
+  const APP_URL = getAppUrl();
+  const url = `${APP_URL.replace(/\/$/, '')}/api/auth/me`;
+  const cookieHeader = cookies().toString();
+
+  try {
+    const response = await fetch(url, {
+      method: 'GET',
+      cache: 'no-store',
+      headers: {
+        Accept: 'application/json',
+        ...(cookieHeader ? { cookie: cookieHeader } : {}),
+      },
+    });
+
+    if (!response.ok) {
+      return null;
+    }
+
+    const data = await response.json();
+    return data?.user ?? null;
+  } catch (error) {
+    console.error('[page.jsx] getCurrentUser failed:', error);
+    return null;
+  }
+}
+
 export default async function HomePage() {
-  const places = await getPlaces();
+  const [places, currentUser] = await Promise.all([getPlaces(), getCurrentUser()]);
 
   return (
     <main data-cy="app-root" className="min-h-screen bg-slate-50 text-slate-900">
       <div className="mx-auto flex min-h-screen max-w-[1600px] flex-col gap-4 px-4 py-6 sm:px-6 lg:px-8">
-        <TravelTrackerApp initialPlaces={places} />
+        <TravelTrackerApp initialPlaces={places} currentUser={currentUser} />
       </div>
     </main>
   );

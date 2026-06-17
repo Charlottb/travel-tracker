@@ -1,50 +1,20 @@
 'use client';
 
-import { useState } from 'react';
+export default function Navbar({ activeNav = 'karte', setActiveNav = () => {}, onAddPlace = () => {}, user = null }) {
+  const isLoggedIn = Boolean(user);
+  const email = user?.email || '';
 
-export default function Navbar({ activeNav = 'karte', setActiveNav = () => {}, onAddPlace = () => {} }) {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [email, setEmail] = useState('');
-  const [showLoginModal, setShowLoginModal] = useState(false);
-  const [showRegisterModal, setShowRegisterModal] = useState(false);
-  const [loginEmail, setLoginEmail] = useState('');
-  const [loginPassword, setLoginPassword] = useState('');
-  const [registerEmail, setRegisterEmail] = useState('');
-  const [registerPassword, setRegisterPassword] = useState('');
-  const [registerPasswordConfirm, setRegisterPasswordConfirm] = useState('');
-
-  const handleLogin = (event) => {
-    event.preventDefault();
-    if (!loginEmail.trim() || !loginPassword.trim()) {
-      return;
+  const handleLogout = async () => {
+    try {
+      await fetch('/api/auth/logout', {
+        method: 'POST',
+        credentials: 'include',
+      });
+    } catch (error) {
+      console.warn('[Navbar] Logout failed:', error);
     }
-    setEmail(loginEmail.trim());
-    setIsLoggedIn(true);
-    setLoginEmail('');
-    setLoginPassword('');
-    setShowLoginModal(false);
-  };
 
-  const handleRegister = (event) => {
-    event.preventDefault();
-    if (!registerEmail.trim() || !registerPassword.trim() || !registerPasswordConfirm.trim()) {
-      return;
-    }
-    if (registerPassword !== registerPasswordConfirm) {
-      alert('Passwörter stimmen nicht überein.');
-      return;
-    }
-    setEmail(registerEmail.trim());
-    setIsLoggedIn(true);
-    setRegisterEmail('');
-    setRegisterPassword('');
-    setRegisterPasswordConfirm('');
-    setShowRegisterModal(false);
-  };
-
-  const handleLogout = () => {
-    setEmail('');
-    setIsLoggedIn(false);
+    window.location.href = '/login';
   };
 
   return (
@@ -96,14 +66,14 @@ export default function Navbar({ activeNav = 'karte', setActiveNav = () => {}, o
             <div className="flex flex-wrap items-center gap-2">
               <button
                 type="button"
-                onClick={() => setShowLoginModal(true)}
+                onClick={() => { window.location.href = '/login'; }}
                 className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 transition hover:bg-slate-100"
               >
                 Login
               </button>
               <button
                 type="button"
-                onClick={() => setShowRegisterModal(true)}
+                onClick={() => { window.location.href = '/register'; }}
                 className="rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-700"
               >
                 Registrieren
@@ -112,141 +82,6 @@ export default function Navbar({ activeNav = 'karte', setActiveNav = () => {}, o
           )}
         </div>
       </div>
-
-      {showLoginModal && (
-        <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-slate-900/60 p-4">
-          <div className="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl">
-            <div className="mb-5 flex items-center justify-between">
-              <div>
-                <h2 className="text-xl font-semibold text-slate-950">Login</h2>
-                <p className="text-sm text-slate-500">Melde dich mit deiner E-Mail-Adresse an.</p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setShowLoginModal(false)}
-                className="text-slate-400 transition hover:text-slate-700"
-              >
-                ✕
-              </button>
-            </div>
-            <form onSubmit={handleLogin} className="space-y-4">
-              <label className="block text-sm font-medium text-slate-700">
-                E-Mail
-                <input
-                  type="email"
-                  value={loginEmail}
-                  onChange={(event) => setLoginEmail(event.target.value)}
-                  className="mt-2 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-950 outline-none focus:border-slate-900"
-                  placeholder="deine@mail.de"
-                  required
-                />
-              </label>
-              <label className="block text-sm font-medium text-slate-700">
-                Passwort
-                <input
-                  type="password"
-                  value={loginPassword}
-                  onChange={(event) => setLoginPassword(event.target.value)}
-                  className="mt-2 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-950 outline-none focus:border-slate-900"
-                  placeholder="Passwort"
-                  required
-                />
-              </label>
-              <div className="flex items-center justify-between gap-3">
-                <button
-                  type="submit"
-                  className="flex-1 rounded-2xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-700"
-                >
-                  Einloggen
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowLoginModal(false);
-                    setShowRegisterModal(true);
-                  }}
-                  className="flex-1 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-900 transition hover:bg-slate-100"
-                >
-                  Registrieren
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {showRegisterModal && (
-        <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-slate-900/60 p-4">
-          <div className="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl">
-            <div className="mb-5 flex items-center justify-between">
-              <div>
-                <h2 className="text-xl font-semibold text-slate-950">Registrieren</h2>
-                <p className="text-sm text-slate-500">Erstelle ein Konto für Travel Tracker.</p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setShowRegisterModal(false)}
-                className="text-slate-400 transition hover:text-slate-700"
-              >
-                ✕
-              </button>
-            </div>
-            <form onSubmit={handleRegister} className="space-y-4">
-              <label className="block text-sm font-medium text-slate-700">
-                E-Mail
-                <input
-                  type="email"
-                  value={registerEmail}
-                  onChange={(event) => setRegisterEmail(event.target.value)}
-                  className="mt-2 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-950 outline-none focus:border-slate-900"
-                  placeholder="deine@mail.de"
-                  required
-                />
-              </label>
-              <label className="block text-sm font-medium text-slate-700">
-                Passwort
-                <input
-                  type="password"
-                  value={registerPassword}
-                  onChange={(event) => setRegisterPassword(event.target.value)}
-                  className="mt-2 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-950 outline-none focus:border-slate-900"
-                  placeholder="Passwort"
-                  required
-                />
-              </label>
-              <label className="block text-sm font-medium text-slate-700">
-                Passwort wiederholen
-                <input
-                  type="password"
-                  value={registerPasswordConfirm}
-                  onChange={(event) => setRegisterPasswordConfirm(event.target.value)}
-                  className="mt-2 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-950 outline-none focus:border-slate-900"
-                  placeholder="Passwort erneut eingeben"
-                  required
-                />
-              </label>
-              <div className="flex items-center justify-between gap-3">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowRegisterModal(false);
-                    setShowLoginModal(true);
-                  }}
-                  className="flex-1 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-900 transition hover:bg-slate-100"
-                >
-                  Zur Anmeldung
-                </button>
-                <button
-                  type="submit"
-                  className="flex-1 rounded-2xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-700"
-                >
-                  Konto erstellen
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
