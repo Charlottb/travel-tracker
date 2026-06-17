@@ -8,7 +8,50 @@ Unsere App verwendet Next.js mit Server-Side Rendering (SSR), da SEO für die Re
 
 **Architekturentscheidung:** Next.js mit SSR wird verwendet, da es SEO durch serverseitiges Rendering unterstützt und gleichzeitig Client-Side Rendering für Interaktivität ermöglicht. Vite wäre schneller in der Entwicklung, bietet aber keine native SSR-Unterstützung.
 
-**Prompt-Iterationen:** Die Entscheidung basiert auf der Analyse von SEO-Bedarf (für Suchmaschinen-Indexierung) und Interaktivitätsanforderungen (für Benutzererfahrung), wobei Next.js als ausgewogenste Lösung identifiziert wurde.
+**Beobachtung:** Die App erfordert sowohl gute SEO für die Reiseorte als auch hohe Interaktivität durch Karten und Formulare.
+
+## Echtzeit-Kommunikation
+
+**Gibt es Daten in eurer App, die sich ändern können, während ein anderer Nutzer die Seite offen hat?**
+Ja. Orte (`places`) können von anderen Nutzern angelegt oder gelöscht werden, während ein Nutzer die Seite geöffnet hat.
+
+**Müssen Änderungen sofort sichtbar sein – oder reicht ein Reload?**
+Für die Produktfunktionalität reicht technisch ein Reload oder gelegentliches Polling. Die Echtzeit-Integration ist hier eher als Lernübung eingebaut und nicht zwingend notwendig für den grundsätzlichen Betrieb.
+
+**Ist die Kommunikation einseitig (Server → Client) oder bidirektional (beide senden)?**
+Die App verwendet beides: SSE für serverseitige Push-Benachrichtigungen und socket.io für bidirektionale Events beim Erstellen neuer Orte.
+
+**Wie viele Clients könnten gleichzeitig verbunden sein?**
+In der aktuellen Architektur dürften es im Realbetrieb eher wenige Dutzend bis wenige Hundert gleichzeitig aktive Clients sein. Die App ist kein skalierender Echtzeit-Messenger, sondern ein kollaboratives Reiseplanungswerkzeug mit begrenzter Nutzerzahl.
+
+**Technologieentscheidung**
+- Keine Echtzeit nötig: Polling oder Reload reicht für den normalen Use-Case, weil Orte nicht im Sekundentakt geändert werden und synchronisierte Zusammenarbeit hier nur ein Netzeffekt ist.
+- Wir bauen trotzdem SSE und socket.io als Lernübung ein und kennzeichnen sie ausdrücklich als „nicht produktiv notwendig".
+
+### Implementierung
+- `backend/server.js`: SSE-Endpoint `GET /api/events` hinzugefügt.
+- `backend/routes/places.js`: Nach `POST /places` wird ein SSE-Event `place-created` ausgelöst.
+- `frontend/components/TravelTrackerApp.jsx`: `EventSource`-Listener öffnet eine Verbindung zum Backend, hört auf `place-created` und lädt die Liste bei neuen Daten nach.
+- `frontend/components/TravelTrackerApp.jsx`: `socket.io-client` sendet beim Anlegen eines neuen Ortes das Event `new-place` an den Server.
+
+### Prompt-Iterationen
+- SSE erste Iteration: allgemeine Anforderung formuliert. Zweite Iteration: konkretes Event `place-created` benannt und die Anforderung zur Liste-Aktualisierung ohne Reload präzisiert.
+- WebSockets erste Iteration: Beschreibung des generischen Broadcasts. Zweite Iteration: konkretes Event `new-place`, Verwendung von `socket.broadcast.emit` und exakte Aktualisierungslogik im Frontend ergänzt.
+
+### SSE vs WebSockets
+Kriterium | SSE | WebSockets
+--- | --- | ---
+Richtung | Server → Client | Bidirektional
+Komplexität im Code | Gering | Mittel
+Reconnect bei Verbindungsabbruch | Automatisch (Browser) | Manuell / socket.io übernimmt
+Geeignet für unser Projekt | ✅ | ✅
+Warum? | Die App benötigt vor allem Server-Updates, wenn andere Nutzer neue Orte anlegen. | WebSockets sind praktisch, weil der Client beim Erstellen des Ortes aktiv ein Ereignis abschickt und andere Browser sofort informiert.
+
+**Was passiert beim Server-Neustart?**
+Verbundene Clients verlieren die Verbindung. `EventSource` reconnectt automatisch nach dem Neustart, und socket.io bemüht sich ebenfalls um Reconnect. Während der Downtime gehen währenddessen eintreffende Aktualisierungen verloren, die nach Wiederverbindung nicht automatisch nachgeholt werden.
+
+### Agenten-Einschätzung
+Langfristig würden in dieser App vor allem kollaborative Änderungen wie Reiseort-Updates, gemeinsame Listen oder Benachrichtigungen von mehreren Nutzern von Echtzeit-Kommunikation profitieren. Reines Lesen und gelegentliches Anlegen von Orten ist dagegen einfacher und ehrlicher mit Polling alle 5 Sekunden gelöst, weil die Datenmenge niedrig ist und es keine zwingende Live-Interaktion wie bei Chat oder Multiplayer gibt. Ich stimme der Einschätzung zu: Echtzeit ist lehrreich und wertvoll für Benutzerfeedback, aber es ist nicht die technisch notwendige Grundlage für die Kernfunktionalität.
 
 ## Ressourcen und API-Struktur
 

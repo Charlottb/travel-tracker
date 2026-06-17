@@ -1,6 +1,7 @@
 const express = require('express');
 const authenticate = require('../middleware/authenticate');
 const prisma = require('../lib/prisma');
+const { broadcastPlaceCreated } = require('../lib/sse');
 
 const router = express.Router();
 
@@ -75,6 +76,7 @@ router.post('/', authenticate, async (req, res) => {
     });
 
     console.log(`[Backend] POST /places - Saved in SQLite: ${newPlace.id}`);
+    broadcastPlaceCreated(newPlace);
     res.status(201).json(newPlace);
   } catch (error) {
     console.error('[Backend] POST /places Error:', {

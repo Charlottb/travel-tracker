@@ -1,12 +1,14 @@
 'use client';
 
 import dynamic from 'next/dynamic';
-import { useCallback, useState, useEffect } from 'react';
+import { useCallback, useState, useEffect, useMemo } from 'react';
+import { io } from 'socket.io-client';
 import Navbar from './Navbar';
 import Sidebar from './Sidebar';
 import { authFetch } from '../lib/authFetch';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || '/api';
+const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001';
 const MapView = dynamic(() => import('./MapView'), {
   ssr: false,
   loading: () => <div className="h-full w-full animate-pulse bg-slate-100" />,
@@ -32,6 +34,83 @@ export default function TravelTrackerApp({ initialPlaces = [] }) {
   useEffect(() => {
     console.log('[TravelTrackerApp] Mounted with', initialPlaces.length, 'initial places');
   }, [initialPlaces.length]);
+
+  const refreshPlaces = useCallback(async () => {
+    try {
+      const response = await authFetch(`${API_BASE_URL}/places`, {
+        headers: { 'Content-Type': 'application/json' },
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(errorText || `HTTP ${response.status}`);
+      }
+
+      const freshPlaces = await response.json();
+      setPlaces(freshPlaces);
+    } catch (err) {
+      console.error('[TravelTrackerApp] Error refreshing places:', err);
+    }
+  }, []);
+
+  const socket = useMemo(() => {
+    if (typeof window === 'undefined') {
+      return null;
+    }
+
+    const socketInstance = io(BACKEND_URL, {
+      path: '/socket.io',
+      transports: ['websocket'],
+      withCredentials: true,
+    });
+
+    socketInstance.on('connect', () => {
+      console.log('[TravelTrackerApp] socket.io connected', socketInstance.id);
+    });
+
+    socketInstance.on('disconnect', (reason) => {
+      console.log('[TravelTrackerApp] socket.io disconnected', reason);
+    });
+
+    socketInstance.on('place-created', async () => {
+      console.log('[TravelTrackerApp] Received place-created event from socket.io');
+      await refreshPlaces();
+    });
+
+    return socketInstance;
+  }, [refreshPlaces]);
+
+  useEffect(() => {
+    if (!socket) {
+      return undefined;
+    }
+
+    return () => {
+      socket.disconnect();
+    };
+  }, [socket]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return undefined;
+    }
+
+    const eventSource = new EventSource(`${BACKEND_URL}/api/events`, { withCredentials: true });
+
+    eventSource.addEventListener('place-created', async (event) => {
+      console.log('[TravelTrackerApp] Received SSE place-created', event.data);
+      await refreshPlaces();
+    });
+
+    eventSource.onerror = (error) => {
+      console.warn('[TravelTrackerApp] SSE connection error', error);
+    };
+
+    return () => {
+      eventSource.close();
+      console.log('[TravelTrackerApp] SSE connection closed');
+    };
+  }, [refreshPlaces]);
 
   const handleMapClick = useCallback((latlng) => {
     setFormCoords(latlng);
@@ -91,6 +170,10 @@ export default function TravelTrackerApp({ initialPlaces = [] }) {
       setSidebarMode('list');
       setFormCoords(null);
       setSelectedPlace(null);
+
+      if (socket && socket.connected) {
+        socket.emit('new-place', newPlace);
+      }
     } catch (err) {
       console.error('[TravelTrackerApp] ❌ Error saving place:', {
         message: err.message,
