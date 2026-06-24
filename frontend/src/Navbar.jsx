@@ -284,14 +284,13 @@ function Navbar({ activeNav = "karte", setActiveNav = () => {}, onAddPlace = () 
         <div
           style={{
             position: "fixed",
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
+            inset: 0,
             backgroundColor: "rgba(0, 0, 0, 0.5)",
             display: "flex",
-            alignItems: "center",
+            alignItems: "flex-start",
             justifyContent: "center",
+            padding: "24px",
+            overflowY: "auto",
             zIndex: 1000,
           }}
           onClick={() => setShowLoginModal(false)}
@@ -303,6 +302,8 @@ function Navbar({ activeNav = "karte", setActiveNav = () => {}, onAddPlace = () 
               padding: "32px",
               width: "100%",
               maxWidth: "400px",
+              maxHeight: "calc(100vh - 48px)",
+              overflowY: "auto",
               boxShadow: "0 20px 25px rgba(0, 0, 0, 0.15)",
             }}
             onClick={(e) => e.stopPropagation()}
@@ -472,14 +473,13 @@ function Navbar({ activeNav = "karte", setActiveNav = () => {}, onAddPlace = () 
         <div
           style={{
             position: "fixed",
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
+            inset: 0,
             backgroundColor: "rgba(0, 0, 0, 0.5)",
             display: "flex",
-            alignItems: "center",
+            alignItems: "flex-start",
             justifyContent: "center",
+            padding: "24px",
+            overflowY: "auto",
             zIndex: 1000,
           }}
           onClick={() => setShowRegisterModal(false)}
@@ -491,6 +491,8 @@ function Navbar({ activeNav = "karte", setActiveNav = () => {}, onAddPlace = () 
               padding: "32px",
               width: "100%",
               maxWidth: "400px",
+              maxHeight: "calc(100vh - 48px)",
+              overflowY: "auto",
               boxShadow: "0 20px 25px rgba(0, 0, 0, 0.15)",
             }}
             onClick={(e) => e.stopPropagation()}

@@ -1,5 +1,7 @@
 'use client';
 
+import CategoryBadge from './CategoryBadge';
+
 export default function PlaceDetail({ place, onEdit, onDelete, onClose }) {
   if (!place) return null;
 
@@ -10,7 +12,7 @@ export default function PlaceDetail({ place, onEdit, onDelete, onClose }) {
       </button>
       <div>
         <h2 className="text-xl font-semibold text-slate-950">{place.title}</h2>
-        {place.category && <p className="mt-2 inline-flex rounded-full bg-slate-100 px-3 py-1 text-xs uppercase tracking-[0.2em] text-slate-500">{place.category}</p>}
+        {place.category && <CategoryBadge category={place.category} className="mt-2" />}
         <p className="mt-4 text-sm leading-7 text-slate-600">{place.description}</p>
       </div>
       <div className="grid gap-3 sm:grid-cols-2">

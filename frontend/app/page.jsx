@@ -39,7 +39,7 @@ async function getPlaces() {
     if (!response.ok) {
       const error = await response.text();
       console.error(`[page.jsx] HTTP Error ${response.status}:`, error);
-      throw new Error(`Fehler beim Laden der Orte: HTTP ${response.status}`);
+      return [];
     }
 
     const places = await response.json();
@@ -53,7 +53,7 @@ async function getPlaces() {
       stack: error.stack,
     });
 
-    throw error;
+    return [];
   }
 }
 

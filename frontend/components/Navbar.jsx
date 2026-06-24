@@ -19,13 +19,22 @@ export default function Navbar({ activeNav = 'karte', setActiveNav = () => {}, o
 
   return (
     <div className="border-b border-slate-200 bg-slate-50 px-5 py-4">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <p className="text-sm uppercase tracking-[0.2em] text-slate-500">Travel Tracker</p>
-          <h1 className="mt-2 text-2xl font-semibold text-slate-950">Meine Reiseorte</h1>
+      <div className="flex flex-col gap-4">
+        <div className="flex items-start justify-between gap-4">
+          <div className="min-w-0">
+            <p className="text-sm uppercase tracking-[0.2em] text-slate-500">Travel Tracker</p>
+            <h1 className="mt-2 text-2xl font-semibold text-slate-950">Meine Reiseorte</h1>
+          </div>
+          <button
+            type="button"
+            onClick={onAddPlace}
+            className="shrink-0 rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-700"
+          >
+            + Neuer Ort
+          </button>
         </div>
-        <div className="flex flex-wrap items-center gap-3">
-          <div className="flex gap-2 rounded-full bg-white p-1 shadow-sm ring-1 ring-slate-200">
+        <div className="flex min-w-0 flex-col gap-3">
+          <div className="flex flex-wrap gap-2 rounded-full bg-white p-1 shadow-sm ring-1 ring-slate-200">
             {['karte', 'meine-orte', 'geteilt'].map((tab) => (
               <button
                 key={tab}
@@ -41,45 +50,40 @@ export default function Navbar({ activeNav = 'karte', setActiveNav = () => {}, o
               </button>
             ))}
           </div>
-          <button
-            type="button"
-            onClick={onAddPlace}
-            className="rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-700"
-          >
-            + Neuer Ort
-          </button>
-          {isLoggedIn ? (
-            <div className="flex items-center gap-3 rounded-full bg-white px-4 py-2 text-sm text-slate-700 shadow-sm ring-1 ring-slate-200">
-              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-900 text-sm font-semibold text-white">
-                {email.charAt(0).toUpperCase()}
+          <div className="flex min-w-0 items-center">
+            {isLoggedIn ? (
+              <div className="flex w-full max-w-full items-center gap-3 rounded-full bg-white px-4 py-2 text-sm text-slate-700 shadow-sm ring-1 ring-slate-200">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-slate-900 text-sm font-semibold text-white">
+                  {email.charAt(0).toUpperCase()}
+                </div>
+                <span className="min-w-0 flex-1 whitespace-nowrap text-sm leading-none">{email}</span>
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  className="shrink-0 rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-700"
+                >
+                  Logout
+                </button>
               </div>
-              <span>{email}</span>
-              <button
-                type="button"
-                onClick={handleLogout}
-                className="rounded-full bg-slate-900 px-3 py-1 text-xs font-semibold text-white transition hover:bg-slate-700"
-              >
-                Logout
-              </button>
-            </div>
-          ) : (
-            <div className="flex flex-wrap items-center gap-2">
-              <button
-                type="button"
-                onClick={() => { window.location.href = '/login'; }}
-                className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 transition hover:bg-slate-100"
-              >
-                Login
-              </button>
-              <button
-                type="button"
-                onClick={() => { window.location.href = '/register'; }}
-                className="rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-700"
-              >
-                Registrieren
-              </button>
-            </div>
-          )}
+            ) : (
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => { window.location.href = '/login'; }}
+                  className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 transition hover:bg-slate-100"
+                >
+                  Login
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { window.location.href = '/register'; }}
+                  className="rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-700"
+                >
+                  Registrieren
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>

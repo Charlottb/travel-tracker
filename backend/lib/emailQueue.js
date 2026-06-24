@@ -22,7 +22,16 @@ function enqueueEmail(job) {
 }
 
 async function processEmailQueue() {
-  const client = getResendClient();
+  let client;
+
+  try {
+    client = getResendClient();
+  } catch (error) {
+    console.warn('[EmailQueue] Skipping emails:', error?.message || error);
+    queue.length = 0;
+    processing = false;
+    return;
+  }
 
   while (queue.length > 0) {
     const job = queue.shift();

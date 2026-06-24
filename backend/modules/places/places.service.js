@@ -70,6 +70,38 @@ async function createPlace(placeData, userId) {
   return newPlace;
 }
 
+async function updatePlace(id, placeData, userId) {
+  validatePlaceData(placeData);
+
+  const existingPlace = await prisma.place.findFirst({
+    where: {
+      id,
+      userId,
+    },
+    select: {
+      id: true,
+    },
+  });
+
+  if (!existingPlace) {
+    return null;
+  }
+
+  return prisma.place.update({
+    where: { id },
+    data: buildPlacePayload({ ...placeData, userId }),
+    include: {
+      user: {
+        select: {
+          id: true,
+          email: true,
+          name: true,
+        },
+      },
+    },
+  });
+}
+
 async function deletePlace(id, userId) {
   const result = await prisma.place.deleteMany({
     where: {
@@ -84,5 +116,6 @@ async function deletePlace(id, userId) {
 module.exports = {
   getPlacesForUser,
   createPlace,
+  updatePlace,
   deletePlace,
 };

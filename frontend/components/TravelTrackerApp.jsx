@@ -166,14 +166,17 @@ export default function TravelTrackerApp({ initialPlaces = [], currentUser = nul
     setIsLoading(true);
     setError(null);
     
+    const isEditing = Boolean(placeData.id);
+    const endpoint = isEditing ? `${API_BASE_URL}/places/${placeData.id}` : `${API_BASE_URL}/places`;
+    const method = isEditing ? 'PUT' : 'POST';
+
     console.log('[TravelTrackerApp] 🚀 Saving place:', placeData);
     
     try {
-      const url = `${API_BASE_URL}/places`;
-      console.log('[TravelTrackerApp] POST to', url);
+      console.log(`[TravelTrackerApp] ${method} to`, endpoint);
       
-      const response = await authFetch(url, {
-        method: 'POST',
+      const response = await authFetch(endpoint, {
+        method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(placeData),
       });
@@ -182,32 +185,38 @@ export default function TravelTrackerApp({ initialPlaces = [], currentUser = nul
 
       if (!response.ok) {
         const errorData = await response.text();
-        console.error('[TravelTrackerApp] ❌ POST failed:', errorData);
+        console.error(`[TravelTrackerApp] ❌ ${method} failed:`, errorData);
         throw new Error(`HTTP ${response.status}: ${errorData}`);
       }
 
-      const newPlace = await response.json();
-      console.log('[TravelTrackerApp] ✅ Place saved:', newPlace);
+      const savedPlace = await response.json();
+      console.log('[TravelTrackerApp] ✅ Place saved:', savedPlace);
       
-      setPlaces((currentPlaces) => [...currentPlaces, newPlace]);
+      setPlaces((currentPlaces) => {
+        if (isEditing) {
+          return currentPlaces.map((place) => (place.id === savedPlace.id ? savedPlace : place));
+        }
+
+        return [...currentPlaces, savedPlace];
+      });
       setSidebarMode('list');
       setFormCoords(null);
       setSelectedPlace(null);
 
-      if (socket && socket.connected) {
-        socket.emit('new-place', newPlace);
+      if (!isEditing && socket && socket.connected) {
+        socket.emit('new-place', savedPlace);
       }
     } catch (err) {
       console.error('[TravelTrackerApp] ❌ Error saving place:', {
         message: err.message,
         name: err.name,
-        url: `${API_BASE_URL}/places`,
+        url: endpoint,
       });
       setError(`Fehler beim Speichern: ${err.message}`);
     } finally {
       setIsLoading(false);
     }
-  }, [isLoading]);
+  }, [isLoading, socket]);
 
   const handleDeletePlace = useCallback(async (placeToDelete) => {
     if (!placeToDelete?.id) {
@@ -265,11 +274,12 @@ export default function TravelTrackerApp({ initialPlaces = [], currentUser = nul
 
   const handleClearSelectedPlace = useCallback(() => {
     setSelectedPlace(null);
+    setFormCoords(null);
     setSidebarMode('list');
   }, []);
 
   return (
-    <div className="flex min-h-[calc(100vh-3rem)] flex-col overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-xl shadow-slate-200/50 lg:flex-row">
+    <div className="flex min-h-screen flex-col gap-6 overflow-visible rounded-3xl border border-slate-200 bg-white shadow-xl shadow-slate-200/50 lg:flex-row lg:gap-0">
       {/* ✅ Error Toast */}
       {error && (
         <div className="fixed right-4 top-4 z-50 max-w-sm rounded-lg border border-red-300 bg-red-50 p-4 shadow-lg">
@@ -284,14 +294,15 @@ export default function TravelTrackerApp({ initialPlaces = [], currentUser = nul
         </div>
       )}
 
-      <div className="flex h-[420px] min-h-[420px] flex-1 lg:h-auto lg:min-h-[auto]">
+      <div className="flex min-h-[280px] min-w-0 flex-1 overflow-hidden lg:h-auto">
         <MapView
           places={places}
+          selectedCoords={formCoords}
           onMapClick={handleMapClick}
           onMarkerClick={handleMarkerClick}
         />
       </div>
-      <div className="flex w-full flex-col lg:w-[420px]">
+      <div className="flex w-full min-w-0 flex-col lg:w-[420px] lg:min-h-0">
         <Navbar
           activeNav={activeNav}
           setActiveNav={setActiveNav}
@@ -309,6 +320,7 @@ export default function TravelTrackerApp({ initialPlaces = [], currentUser = nul
           onDeletePlace={handleDeletePlace}
           onEditPlace={handleEditPlace}
           onClearSelectedPlace={handleClearSelectedPlace}
+          onCloseForm={handleClearSelectedPlace}
         />
       </div>
     </div>

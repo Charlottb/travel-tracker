@@ -58,11 +58,15 @@ export default function RegisterPage() {
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-slate-50 px-4 text-slate-900">
-      <section className="w-full max-w-sm rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
-        <h1 className="text-2xl font-semibold">Registrieren</h1>
+    <main className="flex min-h-screen items-start justify-center overflow-y-auto bg-slate-50 px-4 py-12 text-slate-900">
+      <section className="w-full max-w-xl rounded-[2rem] border border-slate-200 bg-white p-8 shadow-2xl shadow-slate-200/50">
+        <div className="mb-6 space-y-2">
+          <p className="text-sm uppercase tracking-[0.3em] text-slate-500">Travel Tracker</p>
+          <h1 className="text-3xl font-semibold text-slate-950">Registrieren</h1>
+          <p className="text-sm text-slate-600">Erstelle ein Konto und verwalte deine Orte auf der interaktiven Karte.</p>
+        </div>
 
-        <form className="mt-6 space-y-4" onSubmit={handleSubmit} autoComplete="on">
+        <form className="space-y-5" onSubmit={handleSubmit} autoComplete="on">
           <label htmlFor="register-email" className="block">
             <span className="text-sm font-medium text-slate-700">E-Mail</span>
             <input

@@ -51,3 +51,50 @@ export async function DELETE(request, { params }) {
     );
   }
 }
+
+export async function PUT(request, { params }) {
+  const url = getBackendPlaceUrl(params.id);
+  console.log('[api/places/[id]] PUT ->', url);
+
+  try {
+    const cookie = request.headers.get('cookie');
+    const body = await request.json();
+    const response = await fetch(url, {
+      method: 'PUT',
+      cache: 'no-store',
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        ...(cookie ? { cookie } : {}),
+      },
+      body: JSON.stringify(body),
+    });
+
+    console.log('[api/places/[id]] Backend response:', response.status, response.statusText);
+
+    if (!response.ok) {
+      const error = await readError(response);
+      console.error('[api/places/[id]] PUT failed:', { status: response.status, error });
+      return NextResponse.json(
+        { error: 'Fehler beim Speichern des Ortes', details: error },
+        { status: response.status },
+      );
+    }
+
+    const place = await response.json();
+    console.log('[api/places/[id]] PUT success:', params.id);
+
+    return NextResponse.json(place, { status: response.status });
+  } catch (error) {
+    console.error('[api/places/[id]] PUT crashed:', {
+      message: error.message,
+      name: error.name,
+      url,
+    });
+
+    return NextResponse.json(
+      { error: 'Backend nicht erreichbar', details: error.message },
+      { status: 502 },
+    );
+  }
+}

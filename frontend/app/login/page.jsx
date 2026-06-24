@@ -64,11 +64,15 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-slate-50 px-4 text-slate-900">
-      <section className="w-full max-w-sm rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
-        <h1 className="text-2xl font-semibold">Login</h1>
+    <main className="flex min-h-screen items-start justify-center overflow-y-auto bg-slate-50 px-4 py-12 text-slate-900">
+      <section className="w-full max-w-md rounded-[2rem] border border-slate-200 bg-white p-8 shadow-2xl shadow-slate-200/50">
+        <div className="mb-6 space-y-3">
+          <p className="text-sm uppercase tracking-[0.3em] text-slate-500">Travel Tracker</p>
+          <h1 className="text-3xl font-semibold text-slate-950">Login</h1>
+          <p className="text-sm text-slate-600">Melde dich an, um deine Reiseorte zu sehen und zu verwalten.</p>
+        </div>
 
-        <form className="mt-6 space-y-4" onSubmit={handleSubmit} autoComplete="on">
+        <form className="space-y-5" onSubmit={handleSubmit} autoComplete="on">
           <label htmlFor="email" className="block">
             <span className="text-sm font-medium text-slate-700">E-Mail</span>
             <input

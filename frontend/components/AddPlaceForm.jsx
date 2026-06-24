@@ -1,21 +1,32 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { CATEGORY_OPTIONS, CategoryIcon } from './CategoryBadge';
 
-const categoryOptions = [
-  '',
-  'Restaurant',
-  'Hotel',
-  'Sehenswürdigkeit',
-  'Natur',
-  'Shopping',
-  'Sonstiges',
+const CUSTOM_CATEGORY = '__custom__';
+const categoryChoices = [
+  { value: '', label: 'Keine', icon: 'none' },
+  ...CATEGORY_OPTIONS,
+  { value: CUSTOM_CATEGORY, label: 'Eigene', icon: 'custom' },
 ];
 
-export default function AddPlaceForm({ coords, onSave, onCancel }) {
+export default function AddPlaceForm({ coords, place = null, onSave, onCancel }) {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [category, setCategory] = useState('');
+  const [customCategory, setCustomCategory] = useState('');
+  const isEditing = Boolean(place?.id);
+  const usesCustomCategory = category === CUSTOM_CATEGORY;
+
+  useEffect(() => {
+    const savedCategory = place?.category || '';
+    const isKnownCategory = CATEGORY_OPTIONS.some((option) => option.value === savedCategory);
+
+    setTitle(place?.title || '');
+    setDescription(place?.description || '');
+    setCategory(savedCategory && !isKnownCategory ? CUSTOM_CATEGORY : savedCategory);
+    setCustomCategory(savedCategory && !isKnownCategory ? savedCategory : '');
+  }, [place]);
 
   const handleSubmit = (event) => {
     event.preventDefault();
@@ -30,17 +41,28 @@ export default function AddPlaceForm({ coords, onSave, onCancel }) {
       return;
     }
 
+    const finalCategory = usesCustomCategory ? customCategory.trim() : category;
+
+    if (usesCustomCategory && !finalCategory) {
+      alert('Bitte gib eine eigene Kategorie ein.');
+      return;
+    }
+
     onSave({
+      ...(place?.id ? { id: place.id } : {}),
       lat: Number(coords.lat),
       lng: Number(coords.lng),
       title,
       description,
-      category: category || undefined,
+      category: finalCategory || undefined,
     });
 
-    setTitle('');
-    setDescription('');
-    setCategory('');
+    if (!isEditing) {
+      setTitle('');
+      setDescription('');
+      setCategory('');
+      setCustomCategory('');
+    }
   };
 
   return (
@@ -78,24 +100,38 @@ export default function AddPlaceForm({ coords, onSave, onCancel }) {
       </div>
       <div>
         <label className="block text-sm font-medium text-slate-700">Kategorie</label>
-        <select
-          value={category}
-          onChange={(event) => setCategory(event.target.value)}
-          className="mt-2 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-950 outline-none transition focus:border-slate-900"
-        >
-          {categoryOptions.map((option) => (
-            <option key={option} value={option}>
-              {option || 'Keine Kategorie'}
-            </option>
+        <div className="mt-2 grid grid-cols-2 gap-2">
+          {categoryChoices.map((option) => (
+            <button
+              key={option.value}
+              type="button"
+              onClick={() => setCategory(option.value)}
+              className={`flex min-h-11 items-center gap-2 rounded-2xl border px-3 py-2 text-left text-sm font-medium transition ${
+                category === option.value
+                  ? 'border-emerald-400 bg-emerald-50 text-emerald-900 shadow-sm'
+                  : 'border-slate-200 bg-slate-50 text-slate-700 hover:border-slate-300 hover:bg-white'
+              }`}
+            >
+              <CategoryIcon type={option.icon} className="h-4 w-4 shrink-0" />
+              <span className="min-w-0 truncate">{option.label}</span>
+            </button>
           ))}
-        </select>
+        </div>
+        {usesCustomCategory && (
+          <input
+            value={customCategory}
+            onChange={(event) => setCustomCategory(event.target.value)}
+            className="mt-3 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-950 outline-none transition focus:border-emerald-500"
+            placeholder="Eigene Kategorie, z.B. Lieblingsplatz"
+          />
+        )}
       </div>
       <div className="grid gap-3 sm:grid-cols-2">
         <button type="button" onClick={onCancel} className="rounded-2xl border border-slate-200 bg-slate-100 px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-200">
           Abbrechen
         </button>
         <button type="submit" className="rounded-2xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-700">
-          Ort speichern
+          {isEditing ? 'Änderungen speichern' : 'Ort speichern'}
         </button>
       </div>
     </form>

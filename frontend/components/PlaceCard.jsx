@@ -1,5 +1,7 @@
 'use client';
 
+import CategoryBadge from './CategoryBadge';
+
 export default function PlaceCard({ place, onClick, highlight = false, anchorId }) {
   return (
     <button
@@ -12,7 +14,7 @@ export default function PlaceCard({ place, onClick, highlight = false, anchorId 
     >
       <h3 className="text-base font-semibold text-slate-950">{place.title}</h3>
       <p className="mt-2 text-sm leading-6 text-slate-600">{place.description}</p>
-      {place.category && <p className="mt-3 text-xs uppercase tracking-[0.2em] text-slate-500">{place.category}</p>}
+      {place.category && <CategoryBadge category={place.category} className="mt-3" />}
     </button>
   );
 }
