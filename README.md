@@ -12,58 +12,73 @@ Die App verwendet Next.js mit Server-Side Rendering (SSR), da SEO für die Reise
 
 ## Backend Refactor: Bestandsaufnahme und Modulgrenzen
 
-### Dateien vor dem Refactor
-- `backend/server.js`
-  - Verantwortlich für Express-App-Setup, CORS, Cookie-Parser, SSE-Endpoint, socket.io und das Mounten der Router.
-  - Greift nicht direkt auf Prisma zu, sondern verbindet HTTP mit den passenden Modulen.
-- `backend/routes/auth.js` (legacy)
-  - Verantwortlich für `POST /api/auth/register`, `POST /api/auth/login`, `POST /api/auth/logout`, `GET /api/auth/me`.
-  - Enthält Validierung, Passwort-Hashing, JWT-Erzeugung, Cookie-Optionen und direkte `prisma.user`-Abfragen.
-  - Zugriff auf `user`-Daten gehört zum Auth-Kontext, nicht zur HTTP-Route.
-- `backend/routes/places.js` (legacy)
-  - Verantwortlich für `GET /places`, `POST /places`, `DELETE /places/:id`.
-  - Enthält HTTP-Validation, Prisma-Queries, SSE-Broadcast und E-Mail-Queue-Trigger.
-  - Greift auf `place`-Daten und über `include` auf `user`-Daten zu; diese Mischverantwortung sollte in eine Service-Schicht.
+### Bestandsaufnahme des aktuellen Backends
 
-### Neue modulare Struktur
-- `backend/modules/auth/auth.routes.js` — NUR HTTP-Logik, delegiert an `auth.service.js`.
-- `backend/modules/auth/auth.service.js` — NUR Geschäftslogik für Auth / User.
-- `backend/modules/places/places.routes.js` — NUR HTTP-Logik für Place-Endpoints.
-- `backend/modules/places/places.service.js` — NUR Geschäftslogik für Place-Verwaltung, E-Mail-Queue und SSE.
+Einen Ordner `backend/routes/` gibt es im aktuellen Stand nicht mehr. Die HTTP-Routen liegen bereits kontextbezogen unter `backend/modules/`; die folgenden Dateien ersetzen die früheren Route-Dateien.
+
+| Datei | Verantwortung | Zugriff auf Daten anderer Bereiche? |
+| --- | --- | --- |
+| `backend/server.js` | Express-Setup, CORS, Cookies, Router-Mounting, SSE-Endpoint und Socket.IO-Gateway. | Nein; keine Prisma-Abfrage. |
+| `backend/modules/auth/auth.routes.js` | HTTP-Endpunkte für Registrierung, Login, Logout und die aktuelle Identität. | Nein; delegiert vollständig an den Auth-Service. |
+| `backend/modules/places/places.routes.js` | HTTP-Endpunkte zum Lesen, Anlegen, Ändern und Löschen eigener Orte. | Nein; delegiert vollständig an den Places-Service. |
+
+Die Route-Handler enthalten keine direkte Geschäfts- oder Prisma-Logik: Sie lesen HTTP-Eingaben, rufen einen Service auf und übersetzen erwartete Fehler in HTTP-Statuscodes. Die Umwandlung von `req.params.id` in der Places-Route ist bewusst HTTP-Input-Validierung.
 
 ### Bounded Contexts
-- Auth/User Context
-  - Begriffe: User, Registrierung, Login, JWT, Session.
-  - Daten: `user`-Tabelle, Passwort-Hashes, Authentifizierungs-Token.
-- Place Management Context
-  - Begriffe: Place, Ort, Kategorie, Koordinaten, Ownership.
-  - Daten: `place`-Tabelle, Zuordnung zu `userId`.
-- Notification/Realtime Context
-  - Begriffe: E-Mail, Queue, SSE-Event, Broadcast.
-  - Daten: keine eigene Persistenz, intern: E-Mail-Template, Queue-Verarbeitung, Event-Verteilung.
 
-### Kommunikation zwischen Kontexten
-- Place Management braucht vom Auth/User-Kontext die `userId` und die Gewissheit, dass der Request authentifiziert ist. Auth liefert Identität, aber keine Place-Details.
-- Place Management gibt an Notification/Realtime Kontext Place-Ereignisse und Nutzerkontaktinformationen weiter, aber es überlässt das Versand-/Broadcasting-Verhalten dem Notification-Bereich.
-- Auth/User benötigt keine internen Place-Daten, sondern nur die Authentifizierungsinformationen des Users.
+| Kontext | Einheitliche Begriffe und Verantwortlichkeit | Eigene Daten/Logik |
+| --- | --- | --- |
+| Auth & User | User, Registrierung, Login, Passwort, JWT und Sitzung | `User`, Passwort-Hash, JWT-Prüfung und Identität aus dem Cookie |
+| Place Management | Ort, Kategorie, Koordinaten und Ownership | `Place`, Validierung und CRUD nur für die eigene `userId` |
+| Notification & Realtime | E-Mail, Queue, SSE-Event und Broadcast | E-Mail-Template, In-Memory-Queue und verbundene SSE-Clients; keine eigene Datenbanktabelle |
+
+Place Management erhält vom Auth-&-User-Kontext die authentifizierte `userId` und fragt für die Bestätigungs-E-Mail ausschließlich den freigegebenen Empfänger ab. Es übergibt an Notification & Realtime nur den gespeicherten Ort sowie Empfängername und -adresse; weder der Notification-Kontext noch Auth benötigt interne Place-Änderungslogik.
+
+### Modulare Struktur
+
+```text
+backend/
+├── modules/
+│   ├── auth/
+│   │   ├── auth.routes.js
+│   │   └── auth.service.js
+│   └── places/
+│       ├── places.routes.js
+│       └── places.service.js
+├── middleware/authenticate.js
+├── prisma/schema.prisma
+└── server.js
+```
 
 ### Service-Schnittstellen
+
 `auth.service.js`
-  öffentlich: `registerUser()`, `loginUser()`, `setAuthCookie()`, `getAuthCookieOptions()`
-  intern: `validateRegisterData()`, `getJwtSecret()`
+
+- öffentlich: `registerUser()`, `loginUser()`, `getUserNotificationRecipient()`, `setAuthCookie()`, `getAuthCookieOptions()`
+- intern: `validateRegisterData()`, `createConflictError()`, `getJwtSecret()`
 
 `places.service.js`
-  öffentlich: `getPlacesForUser()`, `createPlace()`, `deletePlace()`
-  intern: `validatePlaceData()`, `buildPlacePayload()`
 
-### Agenten-Analyse: Geschäftslogik in Route-Handlern
-- `routes/auth.js` enthielt Validierungslogik, Benutzererstellung, Passwort-Hashing und Token-Handling, die besser in `auth.service.js` gehören.
-- `routes/places.js` enthielt Validierung, Prisma-Queries, SSE-Broadcast und E-Mail-Queue-Trigger. Diese Bereiche sollten in `places.service.js` landen, damit die Route-Handler dünn bleiben.
-- `routes/places.js` hat außerdem direkten Zugriff auf die `user`-Daten via `include`; das ist ein Hinweis auf eine Grenzüberquerung zwischen Place Management und User/Authentication.
+- öffentlich: `getPlacesForUser()`, `createPlace()`, `updatePlace()`, `deletePlace()`
+- intern: `validatePlaceData()`, `buildPlacePayload()`
+
+Der Auth-Service ist die einzige Schnittstelle zum `User`-Modell. Der Places-Service greift nur direkt auf `prisma.place` zu und bezieht E-Mail-Empfänger über `authService.getUserNotificationRecipient(userId)`; damit existiert kein direkter modulübergreifender Prisma-Zugriff mehr.
+
+### Architektur-Analyse des aktuellen Stands
+
+- Es gibt keine Route-Datei mit direktem `prisma.*`-Zugriff oder ausgelagerter Geschäftslogik. Authentifizierung, Validierung, Ownership-Prüfung und Persistenz liegen in den jeweiligen Services.
+- `places.service.js` löst nach einem gespeicherten Ort ein SSE-Event und eine E-Mail aus. Das ist derzeit ein pragmatischer Application-Use-Case, koppelt Place Management aber an Infrastruktur; bei weiterer Größe sollte ein `PlaceCreated`-Event von separaten Notification-/Realtime-Handlern verarbeitet werden.
+- `auth.service.js` enthält mit `setAuthCookie()` noch eine HTTP-nahe Funktion. Die Cookie-Optionen könnten später in einen HTTP-/Cookie-Adapter wandern; das ist keine Datenbank- oder Kontextverletzung.
+- Socket.IO empfängt aktuell ein clientseitiges `new-place` und broadcastet es direkt. Der Kanal sollte langfristig nur Ereignisse verteilen, die nach erfolgreicher Persistenz serverseitig erzeugt wurden, damit kein nicht gespeicherter Ort als Ereignis erscheint.
 
 ### Prompt-Iterationen für den Refactor
-1. Erste Iteration: Route-Handler in `auth.js` und `places.js` analysieren, die wichtigsten Prisma-Abfragen in Service-Dateien auslagern und die HTTP-Fehlerlogik im Route-Layer belassen.
-2. Zweite Iteration: Fehlerklassifikation mit `error.name` (`ValidationError`, `ConflictError`) präzisieren, den Service-Layer so gestalten, dass er nur Domänenoperationen zurückgibt, und die Route-Dateien rein auf Statuscodes/JSON-Antworten beschränken.
+
+1. Erste Iteration: „Lagere Validierung und Prisma-Abfrage der Place-Handler in `places.service.js` aus; die Routen sollen nur Request, Response und HTTP-Fehler behandeln.“ Ergebnis: Die CRUD-Use-Cases liegen im Places-Service, inklusive Ownership-Filter.
+2. Zweite Iteration: „Prüfe Service-Dateien auf direkte Prisma-Zugriffe auf fremde Modelle und definiere dafür eine Service-Schnittstelle.“ Präzisierung: Der vorherige `include.user`-Zugriff im Places-Service wurde entfernt; für die E-Mail wird nun ausschließlich `authService.getUserNotificationRecipient(userId)` verwendet.
+
+### Architektur-Review / Microservices-Vorbereitung
+
+Die meisten eingehenden Abhängigkeiten hat derzeit die Authentifizierungs-Grenze: Beide Router verwenden `authenticate`, und der Places-Service nutzt eine klar begrenzte Auth-Service-Funktion. Das ist als gemeinsame Sicherheits- und Identitätsfunktion kein Warnsignal, solange Auth keine Place-Details zurückfordert. Am leichtesten wäre später Notification & Realtime auszulagern, weil dieser Bereich keine eigene Persistenz besitzt und bereits über „Ort wurde erstellt“ als Ereignis angesprochen werden kann.
 
 ## Echtzeit-Kommunikation
 
@@ -85,7 +100,7 @@ In der aktuellen Architektur dürften es im Realbetrieb eher wenige Dutzend bis 
 
 ### Implementierung
 - `backend/server.js`: SSE-Endpoint `GET /api/events` hinzugefügt.
-- `backend/routes/places.js`: Nach `POST /places` wird ein SSE-Event `place-created` ausgelöst.
+- `backend/modules/places/places.service.js`: Nach `createPlace()` wird ein SSE-Event `place-created` ausgelöst.
 - `frontend/components/TravelTrackerApp.jsx`: `EventSource`-Listener öffnet eine Verbindung zum Backend, hört auf `place-created` und lädt die Liste bei neuen Daten nach.
 - `frontend/components/TravelTrackerApp.jsx`: `socket.io-client` sendet beim Anlegen eines neuen Ortes das Event `new-place` an den Server.
 
@@ -165,11 +180,11 @@ DATABASE_URL="file:./dev.db"
 
 Die Datei `.env` ist in `backend/.gitignore` eingetragen und soll nicht committet werden. Das Prisma-Schema liegt unter `backend/prisma/schema.prisma`; die erste Migration erstellt die Tabellen `User` und `Place`.
 
-Die CRUD-Handler fuer `places` wurden von Mock-/JSON-Daten auf Prisma-Queries umgestellt:
+Die Place-Use-Cases verwenden Prisma im Service-Layer:
 
-- `GET /places`: laedt alle Orte mit `prisma.place.findMany()`.
-- `POST /places`: erstellt einen Ort mit `prisma.place.create()`. Da es noch kein Login gibt, wird ein Demo-User per `prisma.user.upsert()` angelegt bzw. wiederverwendet.
-- `DELETE /places/:id`: loescht einen Ort mit `prisma.place.delete()`.
+- `getPlacesForUser()`: lädt ausschließlich die Orte der authentifizierten `userId`.
+- `createPlace()`: erstellt einen Ort mit `prisma.place.create()`.
+- `updatePlace()` und `deletePlace()`: verwenden einen Ownership-Filter mit `id` und `userId`.
 
 Die alten Orte aus `backend/places.json` wurden einmalig mit `npm run import:places` in die SQLite-Datenbank importiert.
 
@@ -221,24 +236,16 @@ Das Express-Backend stellt zwei Auth-Routen bereit:
 
 Der JWT-Secret liegt in `backend/.env` als `JWT_SECRET`. Bei bereits vergebener E-Mail antwortet das Backend mit `409`. Bei falscher E-Mail oder falschem Passwort antwortet es immer identisch mit `401` und der Meldung `E-Mail oder Passwort ungültig.`
 
-## Ursprüngliche Sicherheitsluecken
+## Sicherheitsstatus der Place-Endpunkte
 
-Vor der Auth-Implementierung lagen mehrere `places`-Routen offen: `GET /places`, `POST /places` und `DELETE /places/:id` konnten anonym aufgerufen werden. Es fehlte eine Auth-Middleware, die das `authToken` prüft, und es fehlten Ownership-Checks, die sicherstellen, dass `Place.userId` nur zum angemeldeten Nutzer passt.
+Die früheren offenen Mock-Routen sind durch die aktuelle Modulstruktur ersetzt. Alle Place-Endpunkte verwenden `authenticate`; der Service erhält die `userId` ausschließlich aus dem validierten JWT-Payload und filtert Datenbankzugriffe nach Ownership.
 
-| Route | Anonymer Nutzer kann Daten lesen? | Anonymer Nutzer kann Daten veraendern? | Anonymer Nutzer kann Daten loeschen? | Konkrete Stelle |
-| --- | --- | --- | --- | --- |
-| `GET /places` | Ja. Die Route liefert alle Places inklusive User-Daten aus. | Nein. | Nein. | `backend/routes/places.js`: `prisma.place.findMany({ orderBy: { id: 'asc' }, include: { user: { select: { id, email, name } } } })` |
-| `POST /places` | Indirekt ja, weil die Antwort den neu angelegten Place inklusive User-Daten zurueckgibt. | Ja. Jeder Request mit `lat`, `lng` und `title` kann einen neuen Datensatz anlegen. | Nein. | `backend/routes/places.js`: `getDefaultUser()` nutzt `prisma.user.upsert(...)`, danach erstellt `prisma.place.create(...)` einen Place mit `userId: user.id`. |
-| `DELETE /places/:id` | Nein. | Nein. | Ja. Jeder Request mit einer numerischen ID kann einen Place loeschen. | `backend/routes/places.js`: `prisma.place.delete({ where: { id } })` loescht ohne User-Pruefung. |
-| `POST /api/auth/register` | Teilweise. Die Route prueft mit `prisma.user.findUnique({ where: { email } })`, ob eine E-Mail existiert, und antwortet bei Treffer mit `409`. Dadurch kann ein anonymer Nutzer E-Mail-Adressen testen. | Ja. Ein anonymer Nutzer kann neue User mit `prisma.user.create(...)` anlegen. | Nein. | `backend/routes/auth.js`: `prisma.user.findUnique(...)` und `prisma.user.create(...)`. |
-| `POST /api/auth/login` | Nur mit gueltigen Zugangsdaten. Die Route liest intern per `prisma.user.findUnique(...)` den User und gibt bei erfolgreichem Passwortvergleich `id`, `email` und `name` zurueck. Ohne gueltige Zugangsdaten werden keine User-Daten ausgegeben. | Nein. Es wird kein Datenbankdatensatz veraendert; nur ein Cookie gesetzt. | Nein. | `backend/routes/auth.js`: `prisma.user.findUnique(...)`, `bcrypt.compare(...)`, `jwt.sign(...)`, `res.cookie('authToken', token, ...)`. |
-
-Konkrete Beispiele:
-
-- `GET /places` ist oeffentlich. Ein anonymer Request bekommt alle Reiseorte, weil `router.get('/')` direkt `prisma.place.findMany(...)` ausfuehrt und keine Auth-Pruefung davor liegt.
-- `POST /places` ist oeffentlich. Ein anonymer Request kann neue Orte schreiben, weil `router.post('/')` nach der einfachen Feldvalidierung sofort `getDefaultUser()` und danach `prisma.place.create(...)` ausfuehrt. Der neue Ort wird immer dem Demo-User `demo@example.com` zugeordnet, nicht dem angemeldeten User.
-- `DELETE /places/:id` ist oeffentlich. Ein anonymer Request kann beliebige Orte per ID loeschen, weil `router.delete('/:id')` nur prueft, ob die ID eine Zahl ist, und dann `prisma.place.delete({ where: { id } })` ausfuehrt.
-- Es fehlt Autorisierung auf Besitzerebene. Selbst wenn spaeter eine Login-Pruefung vor `DELETE /places/:id` gesetzt wird, muesste die Query zusaetzlich sicherstellen, dass der Place dem angemeldeten User gehoert, zum Beispiel ueber `userId`. Aktuell wird bei `delete` nur nach `id` gefiltert.
+| Endpoint | Anonym nutzbar? | Ownership-Schutz | Aktuelle Stelle |
+| --- | --- | --- | --- |
+| `GET /places` | Nein | `findMany({ where: { userId } })` | `modules/places/places.routes.js`, `places.service.js` |
+| `POST /places` | Nein | neuer Ort erhält die `userId` des Tokens | `modules/places/places.routes.js`, `places.service.js` |
+| `PUT /places/:id` | Nein | Lookup mit `id` und `userId` vor dem Update | `modules/places/places.routes.js`, `places.service.js` |
+| `DELETE /places/:id` | Nein | `deleteMany({ where: { id, userId } })` | `modules/places/places.routes.js`, `places.service.js` |
 
 ## Sicherheitskonzept
 
@@ -276,7 +283,7 @@ Konkrete Beispiele:
 
 | OWASP | Status | Dateien | Relevante Zeilen | Konkrete Fixes |
 | --- | --- | --- | --- | --- |
-| A01 Broken Access Control | Abgedeckt | `backend/middleware/authenticate.js`, `backend/routes/places.js` | `authenticate.js` Zeilen 14-22, `places.js` Zeilen 7-13, 39-57, 89-99 | Auth-Middleware und Ownership-Checks beibehalten; neue Routen immer mit `authenticate` schützen. |
-| A02 Cryptographic Failures | Verbesserungswürdig | `backend/routes/auth.js` | Zeilen 62-64, 109-124, 145 | `JWT_SECRET` in `.env` verwenden; in Produktion `secure: true`, `sameSite: 'strict'` und HTTPS erzwingen. |
-| A03 Injection | Abgedeckt | `backend/routes/places.js` | Zeilen 13, 57, 99 | Prisma verhindert SQL-Injection; zusätzlich strenge Eingabevalidierung mit `zod`/`joi` oder Schema-Validierung ergänzen. |
-| A07 Authentication Failures | Verbesserungswürdig | `backend/routes/auth.js`, `backend/middleware/authenticate.js` | `auth.js` Zeilen 109-124, `authenticate.js` Zeilen 14-22 | Login-Rate-Limitierung, Account-Lockout und Token-Rotationsstrategie ergänzen. |
+| A01 Broken Access Control | Abgedeckt | `backend/middleware/authenticate.js`, `backend/modules/places/places.service.js` | Auth-Middleware und Ownership-Filter | Auth-Middleware und Ownership-Checks beibehalten; neue Place-Routen immer schützen. |
+| A02 Cryptographic Failures | Verbesserungswürdig | `backend/modules/auth/auth.service.js` | JWT-Secret und Cookie-Optionen | `JWT_SECRET` setzen; in Produktion HTTPS sowie sichere Cookie-Konfiguration erzwingen. |
+| A03 Injection | Abgedeckt | `backend/modules/*/*.service.js` | Prisma-Queries | Prisma beibehalten; Validierung bei wachsenden Eingabeformaten schema-basiert ergänzen. |
+| A07 Authentication Failures | Verbesserungswürdig | `backend/modules/auth/auth.service.js`, `backend/middleware/authenticate.js` | Login und JWT-Prüfung | Rate-Limitierung, Account-Lockout und Token-Rotation ergänzen. |

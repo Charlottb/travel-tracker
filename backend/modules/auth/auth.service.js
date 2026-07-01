@@ -118,9 +118,20 @@ async function loginUser({ email, password }) {
   };
 }
 
+async function getUserNotificationRecipient(userId) {
+  return prisma.user.findUnique({
+    where: { id: userId },
+    select: {
+      email: true,
+      name: true,
+    },
+  });
+}
+
 module.exports = {
   registerUser,
   loginUser,
+  getUserNotificationRecipient,
   setAuthCookie,
   getAuthCookieOptions,
 };

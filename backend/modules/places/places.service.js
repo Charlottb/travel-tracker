@@ -1,4 +1,5 @@
 const prisma = require('../../lib/prisma');
+const authService = require('../auth/auth.service');
 const { broadcastPlaceCreated } = require('../../lib/sse');
 const { enqueuePlaceCreatedEmail } = require('../../lib/emailQueue');
 
@@ -30,15 +31,6 @@ async function getPlacesForUser(userId) {
   return prisma.place.findMany({
     where: { userId },
     orderBy: { id: 'asc' },
-    include: {
-      user: {
-        select: {
-          id: true,
-          email: true,
-          name: true,
-        },
-      },
-    },
   });
 }
 
@@ -47,25 +39,20 @@ async function createPlace(placeData, userId) {
 
   const newPlace = await prisma.place.create({
     data: buildPlacePayload({ ...placeData, userId }),
-    include: {
-      user: {
-        select: {
-          id: true,
-          email: true,
-          name: true,
-        },
-      },
-    },
   });
+
+  const recipient = await authService.getUserNotificationRecipient(userId);
 
   broadcastPlaceCreated(newPlace);
 
-  enqueuePlaceCreatedEmail({
-    recipientEmail: newPlace.user.email,
-    userName: newPlace.user.name,
-    place: newPlace,
-    appUrl: process.env.FRONTEND_URL || 'http://localhost:3000',
-  });
+  if (recipient) {
+    enqueuePlaceCreatedEmail({
+      recipientEmail: recipient.email,
+      userName: recipient.name,
+      place: newPlace,
+      appUrl: process.env.FRONTEND_URL || 'http://localhost:3000',
+    });
+  }
 
   return newPlace;
 }
@@ -90,15 +77,6 @@ async function updatePlace(id, placeData, userId) {
   return prisma.place.update({
     where: { id },
     data: buildPlacePayload({ ...placeData, userId }),
-    include: {
-      user: {
-        select: {
-          id: true,
-          email: true,
-          name: true,
-        },
-      },
-    },
   });
 }
 
