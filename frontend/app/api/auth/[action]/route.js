@@ -1,13 +1,8 @@
 const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:3001';
-const ALLOWED_ACTIONS = new Set(['register', 'login', 'logout']);
+const ALLOWED_POST_ACTIONS = new Set(['register', 'login', 'logout']);
+const ALLOWED_PATCH_ACTIONS = new Set(['profile']);
 
-export async function POST(request, { params }) {
-  const { action } = params;
-
-  if (!ALLOWED_ACTIONS.has(action)) {
-    return Response.json({ error: 'Unbekannte Auth-Aktion.' }, { status: 404 });
-  }
-
+async function proxyAuthRequest(request, { action, method }) {
   try {
     const headers = { Accept: 'application/json' };
     const cookie = request.headers.get('cookie');
@@ -24,7 +19,7 @@ export async function POST(request, { params }) {
     const backendResponse = await fetch(
       `${BACKEND_URL.replace(/\/$/, '')}/api/auth/${action}`,
       {
-        method: 'POST',
+        method,
         credentials: 'include',
         headers,
         body,
@@ -53,7 +48,7 @@ export async function POST(request, { params }) {
       rawSetCookie.forEach((cookie) => responseHeaders.append('set-cookie', cookie));
     } else if (singleSetCookie) {
       responseHeaders.append('set-cookie', singleSetCookie);
-    } else if (action === 'login' && backendJson?.token) {
+    } else if ((action === 'login' || action === 'profile') && backendJson?.token) {
       responseHeaders.append(
         'set-cookie',
         `authToken=${encodeURIComponent(backendJson.token)}; Path=/; Max-Age=${24 * 60 * 60}; HttpOnly; SameSite=Lax`,
@@ -71,4 +66,24 @@ export async function POST(request, { params }) {
       { status: 502 },
     );
   }
+}
+
+export async function POST(request, { params }) {
+  const { action } = params;
+
+  if (!ALLOWED_POST_ACTIONS.has(action)) {
+    return Response.json({ error: 'Unbekannte Auth-Aktion.' }, { status: 404 });
+  }
+
+  return proxyAuthRequest(request, { action, method: 'POST' });
+}
+
+export async function PATCH(request, { params }) {
+  const { action } = params;
+
+  if (!ALLOWED_PATCH_ACTIONS.has(action)) {
+    return Response.json({ error: 'Unbekannte Auth-Aktion.' }, { status: 404 });
+  }
+
+  return proxyAuthRequest(request, { action, method: 'PATCH' });
 }

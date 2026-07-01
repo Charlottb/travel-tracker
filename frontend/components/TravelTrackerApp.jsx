@@ -25,12 +25,20 @@ export default function TravelTrackerApp({ initialPlaces = [], currentUser = nul
   const [selectedPlace, setSelectedPlace] = useState(null);
   const [sidebarMode, setSidebarMode] = useState('list');
   const [formCoords, setFormCoords] = useState(null);
-  const [activeNav, setActiveNav] = useState('karte');
+  const [activeNav, setActiveNav] = useState('meine-orte');
   const [highlightPlaceId, setHighlightPlaceId] = useState(null);
   
   // ✅ NEW: Error State für User Feedback
   const [error, setError] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
+
+  const visiblePlaces = useMemo(() => {
+    if (activeNav === 'geteilt') {
+      return places.filter((place) => place.sharedWithMe);
+    }
+
+    return places.filter((place) => place.canEdit !== false);
+  }, [activeNav, places]);
 
   // Debug bei Mount
   useEffect(() => {
@@ -53,6 +61,24 @@ export default function TravelTrackerApp({ initialPlaces = [], currentUser = nul
     } catch (err) {
       console.error('[TravelTrackerApp] Error refreshing places:', err);
     }
+  }, []);
+
+  const readApiError = useCallback(async (response) => {
+    const text = await response.text();
+
+    try {
+      const data = JSON.parse(text);
+      return data?.details || data?.error || text;
+    } catch (_error) {
+      return text || response.statusText || `HTTP ${response.status}`;
+    }
+  }, []);
+
+  const replacePlace = useCallback((updatedPlace) => {
+    setPlaces((currentPlaces) =>
+      currentPlaces.map((place) => (place.id === updatedPlace.id ? updatedPlace : place)),
+    );
+    setSelectedPlace((currentPlace) => (currentPlace?.id === updatedPlace.id ? updatedPlace : currentPlace));
   }, []);
 
   const socket = useMemo(() => {
@@ -155,6 +181,12 @@ export default function TravelTrackerApp({ initialPlaces = [], currentUser = nul
     setSelectedPlace(null);
     setFormCoords(null);
     setSidebarMode('form');
+  }, []);
+
+  const handleOpenProfile = useCallback(() => {
+    setSelectedPlace(null);
+    setFormCoords(null);
+    setSidebarMode('profile');
   }, []);
 
   const handleSavePlace = useCallback(async (placeData) => {
@@ -265,6 +297,99 @@ export default function TravelTrackerApp({ initialPlaces = [], currentUser = nul
     }
   }, []);
 
+  const handleSharePlace = useCallback(async (place, email) => {
+    const trimmedEmail = typeof email === 'string' ? email.trim() : '';
+
+    if (!place?.id || !trimmedEmail) {
+      throw new Error('Bitte gib eine E-Mail-Adresse ein.');
+    }
+
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const response = await authFetch(`${API_BASE_URL}/places/${place.id}/share`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: trimmedEmail }),
+      });
+
+      if (!response.ok) {
+        throw new Error(await readApiError(response));
+      }
+
+      const updatedPlace = await response.json();
+      replacePlace(updatedPlace);
+      return updatedPlace;
+    } catch (err) {
+      setError(`Fehler beim Teilen: ${err.message}`);
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  }, [readApiError, replacePlace]);
+
+  const handleUnsharePlace = useCallback(async (place, share) => {
+    if (!place?.id || !share?.id) {
+      return;
+    }
+
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const response = await authFetch(`${API_BASE_URL}/places/${place.id}/share/${share.id}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        throw new Error(await readApiError(response));
+      }
+
+      const updatedPlace = await response.json();
+      replacePlace(updatedPlace);
+    } catch (err) {
+      setError(`Fehler beim Entfernen der Freigabe: ${err.message}`);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [readApiError, replacePlace]);
+
+  const handleUpdateProfile = useCallback(async ({ email, currentPassword, newPassword }) => {
+    const payload = {
+      email,
+    };
+
+    if (newPassword) {
+      payload.currentPassword = currentPassword;
+      payload.newPassword = newPassword;
+    }
+
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const response = await authFetch('/api/auth/profile', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        throw new Error(await readApiError(response));
+      }
+
+      const data = await response.json();
+      setCurrentUserState(data.user);
+      return data.user;
+    } catch (err) {
+      setError(`Fehler beim Speichern des Profils: ${err.message}`);
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  }, [readApiError]);
+
   const handleEditPlace = useCallback(() => {
     if (selectedPlace) {
       setFormCoords({ lat: selectedPlace.lat, lng: selectedPlace.lng });
@@ -279,39 +404,43 @@ export default function TravelTrackerApp({ initialPlaces = [], currentUser = nul
   }, []);
 
   return (
-    <div className="flex min-h-screen flex-col gap-6 overflow-visible rounded-3xl border border-slate-200 bg-white shadow-xl shadow-slate-200/50 lg:flex-row lg:gap-0">
+    <div className="flex min-h-screen flex-col overflow-hidden border border-slate-200 bg-white shadow-2xl shadow-slate-900/10 lg:min-h-[calc(100vh-3rem)] lg:rounded-2xl lg:flex-row">
       {/* ✅ Error Toast */}
       {error && (
-        <div className="fixed right-4 top-4 z-50 max-w-sm rounded-lg border border-red-300 bg-red-50 p-4 shadow-lg">
-          <p className="font-semibold text-red-900">❌ Fehler</p>
+        <div className="fixed right-4 top-4 z-50 max-w-sm rounded-lg border border-red-200 bg-white p-4 shadow-xl shadow-red-950/10">
+          <p className="font-semibold text-red-900">Fehler</p>
           <p className="mt-1 text-sm text-red-800">{error}</p>
           <button 
             onClick={() => setError(null)}
-            className="mt-2 text-xs text-red-700 underline"
+            className="mt-3 rounded-md bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-700 transition hover:bg-red-100"
           >
             Schließen
           </button>
         </div>
       )}
 
-      <div className="flex min-h-[280px] min-w-0 flex-1 overflow-hidden lg:h-auto">
+      <div className="flex min-h-[340px] min-w-0 flex-1 overflow-hidden lg:h-auto">
         <MapView
-          places={places}
+          places={visiblePlaces}
           selectedCoords={formCoords}
           onMapClick={handleMapClick}
           onMarkerClick={handleMarkerClick}
         />
       </div>
-      <div className="flex w-full min-w-0 flex-col lg:w-[420px] lg:min-h-0">
+      <aside className="flex w-full min-w-0 flex-col border-t border-slate-200 bg-slate-50/80 lg:w-[440px] lg:min-h-0 lg:border-l lg:border-t-0">
         <Navbar
           activeNav={activeNav}
           setActiveNav={setActiveNav}
           onAddPlace={handleOpenAddPlace}
+          onOpenProfile={handleOpenProfile}
+          isProfileOpen={sidebarMode === 'profile'}
           user={currentUserState}
         />
         <Sidebar
           mode={sidebarMode}
-          places={places}
+          places={visiblePlaces}
+          profilePlaces={places}
+          currentUser={currentUserState}
           selectedPlace={selectedPlace}
           formCoords={formCoords}
           highlightPlaceId={highlightPlaceId}
@@ -319,10 +448,14 @@ export default function TravelTrackerApp({ initialPlaces = [], currentUser = nul
           onSavePlace={handleSavePlace}
           onDeletePlace={handleDeletePlace}
           onEditPlace={handleEditPlace}
+          onSharePlace={handleSharePlace}
+          onUnsharePlace={handleUnsharePlace}
+          onUpdateProfile={handleUpdateProfile}
           onClearSelectedPlace={handleClearSelectedPlace}
           onCloseForm={handleClearSelectedPlace}
+          isLoading={isLoading}
         />
-      </div>
+      </aside>
     </div>
   );
 }

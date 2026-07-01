@@ -10,21 +10,39 @@ datasource db {
 }
 
 model User {
-  id           Int      @id @default(autoincrement())
-  email        String   @unique
-  name         String
-  passwordHash String   @default("")
-  createdAt    DateTime @default(now())
-  places       Place[]
+  id             Int           @id @default(autoincrement())
+  email          String        @unique
+  name           String
+  passwordHash   String        @default("")
+  createdAt      DateTime      @default(now())
+  places         Place[]
+  sharedPlaces   SharedPlace[] @relation("SharedPlaceRecipient")
+  sharedByUser   SharedPlace[] @relation("SharedPlaceSharer")
 }
 
 model Place {
-  id          Int     @id @default(autoincrement())
+  id          Int           @id @default(autoincrement())
   title       String
   description String?
   category    String?
   lat         Float
   lng         Float
   userId      Int
-  user        User    @relation(fields: [userId], references: [id])
+  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  shares      SharedPlace[]
+}
+
+model SharedPlace {
+  id          Int      @id @default(autoincrement())
+  placeId     Int
+  recipientId Int
+  sharedById  Int
+  createdAt   DateTime @default(now())
+  place       Place    @relation(fields: [placeId], references: [id], onDelete: Cascade)
+  recipient   User     @relation("SharedPlaceRecipient", fields: [recipientId], references: [id], onDelete: Cascade)
+  sharedBy    User     @relation("SharedPlaceSharer", fields: [sharedById], references: [id], onDelete: Cascade)
+
+  @@unique([placeId, recipientId])
+  @@index([recipientId])
+  @@index([sharedById])
 }

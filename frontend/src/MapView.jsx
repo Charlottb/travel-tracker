@@ -57,9 +57,11 @@ function MapView({ places = [], onMapClick = () => {}, onMarkerClick = () => {},
                 <div>
                   <strong>{place.title}</strong>
                 </div>
-                <div style={{ color: "#4b5563", fontSize: "13px", lineHeight: "1.4" }}>
-                  {place.description}
-                </div>
+                {place.description && (
+                  <div style={{ color: "#4b5563", fontSize: "13px", lineHeight: "1.4" }}>
+                    {place.description}
+                  </div>
+                )}
                 {place.category && (
                   <div style={{ color: "#6b7280", fontSize: "12px" }}>
                     Kategorie: {place.category}
@@ -91,4 +93,3 @@ function MapView({ places = [], onMapClick = () => {}, onMarkerClick = () => {},
 }
 
 export default MapView;
-

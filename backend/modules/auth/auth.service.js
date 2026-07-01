@@ -32,6 +32,17 @@ function setAuthCookie(res, token) {
   });
 }
 
+function createAuthToken(user) {
+  return jwt.sign(
+    {
+      userId: user.id,
+      email: user.email,
+    },
+    getJwtSecret(),
+    { expiresIn: '24h' },
+  );
+}
+
 function validateRegisterData({ email, password }) {
   if (!isValidEmail(email) || !isValidPassword(password)) {
     const error = new Error('E-Mail und Passwort sind erforderlich. Das Passwort muss mindestens 8 Zeichen lang sein.');
@@ -99,14 +110,7 @@ async function loginUser({ email, password }) {
     throw error;
   }
 
-  const token = jwt.sign(
-    {
-      userId: user.id,
-      email: user.email,
-    },
-    getJwtSecret(),
-    { expiresIn: '24h' },
-  );
+  const token = createAuthToken(user);
 
   return {
     token,
@@ -128,10 +132,115 @@ async function getUserNotificationRecipient(userId) {
   });
 }
 
+async function getUserProfile(userId) {
+  return prisma.user.findUnique({
+    where: { id: userId },
+    select: {
+      id: true,
+      email: true,
+      name: true,
+      createdAt: true,
+    },
+  });
+}
+
+async function updateUserProfile(userId, { email, currentPassword, newPassword }) {
+  const updates = {};
+  const normalizedEmail = typeof email === 'string' ? normalizeEmail(email) : '';
+
+  if (normalizedEmail) {
+    if (!isValidEmail(normalizedEmail)) {
+      const error = new Error('Bitte gib eine gültige E-Mail-Adresse ein.');
+      error.name = 'ValidationError';
+      throw error;
+    }
+
+    const existingUser = await prisma.user.findFirst({
+      where: {
+        email: normalizedEmail,
+        NOT: { id: userId },
+      },
+      select: { id: true },
+    });
+
+    if (existingUser) {
+      throw createConflictError(EMAIL_TAKEN_MESSAGE);
+    }
+
+    updates.email = normalizedEmail;
+  }
+
+  if (typeof newPassword === 'string' && newPassword.length > 0) {
+    if (!isValidPassword(newPassword)) {
+      const error = new Error('Das neue Passwort muss mindestens 8 Zeichen lang sein.');
+      error.name = 'ValidationError';
+      throw error;
+    }
+
+    if (typeof currentPassword !== 'string' || currentPassword.length === 0) {
+      const error = new Error('Bitte gib dein aktuelles Passwort ein.');
+      error.name = 'ValidationError';
+      throw error;
+    }
+
+    const userWithPassword = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { passwordHash: true },
+    });
+    const passwordMatches = userWithPassword?.passwordHash
+      ? await bcrypt.compare(currentPassword, userWithPassword.passwordHash)
+      : false;
+
+    if (!passwordMatches) {
+      const error = new Error('Das aktuelle Passwort ist falsch.');
+      error.name = 'ValidationError';
+      throw error;
+    }
+
+    updates.passwordHash = await bcrypt.hash(newPassword, 12);
+  }
+
+  if (Object.keys(updates).length === 0) {
+    return getUserProfile(userId);
+  }
+
+  return prisma.user.update({
+    where: { id: userId },
+    data: updates,
+    select: {
+      id: true,
+      email: true,
+      name: true,
+      createdAt: true,
+    },
+  });
+}
+
+async function findUserByEmail(email) {
+  const normalizedEmail = normalizeEmail(email);
+
+  if (!isValidEmail(normalizedEmail)) {
+    return null;
+  }
+
+  return prisma.user.findUnique({
+    where: { email: normalizedEmail },
+    select: {
+      id: true,
+      email: true,
+      name: true,
+    },
+  });
+}
+
 module.exports = {
   registerUser,
   loginUser,
+  createAuthToken,
+  getUserProfile,
+  updateUserProfile,
   getUserNotificationRecipient,
+  findUserByEmail,
   setAuthCookie,
   getAuthCookieOptions,
 };

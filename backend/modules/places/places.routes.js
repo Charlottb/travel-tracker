@@ -88,4 +88,57 @@ router.delete('/:id', authenticate, async (req, res) => {
   }
 });
 
+router.post('/:id/share', authenticate, async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    if (Number.isNaN(id)) {
+      return res.status(400).json({ error: 'Ungueltige ID' });
+    }
+
+    const sharedPlace = await placesService.sharePlace(id, req.user.userId, req.body?.email);
+
+    if (!sharedPlace) {
+      return res.status(404).json({ error: 'Ort nicht gefunden' });
+    }
+
+    return res.json(sharedPlace);
+  } catch (error) {
+    if (error.name === 'ValidationError') {
+      return res.status(400).json({ error: error.message });
+    }
+
+    console.error('[Places] POST /places/:id/share Error:', {
+      message: error.message,
+      code: error.code,
+      stack: error.stack,
+    });
+    return res.status(500).json({ error: 'Teilen fehlgeschlagen', details: error.message });
+  }
+});
+
+router.delete('/:id/share/:shareId', authenticate, async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    const shareId = Number(req.params.shareId);
+    if (Number.isNaN(id) || Number.isNaN(shareId)) {
+      return res.status(400).json({ error: 'Ungueltige ID' });
+    }
+
+    const sharedPlace = await placesService.unsharePlace(id, req.user.userId, shareId);
+
+    if (!sharedPlace) {
+      return res.status(404).json({ error: 'Freigabe nicht gefunden' });
+    }
+
+    return res.json(sharedPlace);
+  } catch (error) {
+    console.error('[Places] DELETE /places/:id/share/:shareId Error:', {
+      message: error.message,
+      code: error.code,
+      stack: error.stack,
+    });
+    return res.status(500).json({ error: 'Freigabe entfernen fehlgeschlagen', details: error.message });
+  }
+});
+
 module.exports = router;

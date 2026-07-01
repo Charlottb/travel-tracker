@@ -11,7 +11,7 @@ function App() {
   const [sidebarMode, setSidebarMode] = useState("list"); // 'list', 'detail', 'form'
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [formCoords, setFormCoords] = useState(null);
-  const [activeNav, setActiveNav] = useState("karte"); // 'karte', 'meine-orte', 'geteilt'
+  const [activeNav, setActiveNav] = useState("meine-orte"); // 'meine-orte', 'geteilt'
 
   // Load places on mount
   React.useEffect(() => {

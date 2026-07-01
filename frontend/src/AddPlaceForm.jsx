@@ -7,8 +7,8 @@ function AddPlaceForm({ coords, onSave, onCancel }) {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!title.trim() || !description.trim()) {
-      alert("Bitte fülle Titel und Beschreibung aus!");
+    if (!title.trim()) {
+      alert("Bitte gib einen Titel ein.");
       return;
     }
 
@@ -20,8 +20,8 @@ function AddPlaceForm({ coords, onSave, onCancel }) {
     onSave({
       lat: Number(coords.lat),
       lng: Number(coords.lng),
-      title,
-      description,
+      title: title.trim(),
+      description: description.trim() || undefined,
       category: category || undefined,
       isShared: false,
     });
@@ -111,7 +111,7 @@ function AddPlaceForm({ coords, onSave, onCancel }) {
               marginBottom: "6px",
             }}
           >
-            Beschreibung
+            Beschreibung optional
           </label>
           <textarea
             value={description}

@@ -57,16 +57,18 @@ function PlaceDetail({ place, onEdit, onDelete, onClose }) {
           </span>
         )}
 
-        <p
-          style={{
-            margin: "12px 0",
-            fontSize: "14px",
-            color: "#4b5563",
-            lineHeight: "1.6",
-          }}
-        >
-          {place.description}
-        </p>
+        {place.description && (
+          <p
+            style={{
+              margin: "12px 0",
+              fontSize: "14px",
+              color: "#4b5563",
+              lineHeight: "1.6",
+            }}
+          >
+            {place.description}
+          </p>
+        )}
 
         <div
           style={{

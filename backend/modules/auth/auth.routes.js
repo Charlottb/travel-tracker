@@ -53,8 +53,48 @@ router.post('/logout', (_req, res) => {
   return res.json({ success: true });
 });
 
-router.get('/me', authenticate, (req, res) => {
-  return res.json({ user: req.user });
+router.get('/me', authenticate, async (req, res) => {
+  try {
+    const user = await authService.getUserProfile(req.user.userId);
+
+    if (!user) {
+      return res.status(404).json({ error: 'Nutzer nicht gefunden.' });
+    }
+
+    return res.json({ user });
+  } catch (error) {
+    console.error('[Auth] me failed:', {
+      message: error.message,
+      code: error.code,
+      stack: error.stack,
+    });
+
+    return res.status(500).json({ error: 'Profil konnte nicht geladen werden.' });
+  }
+});
+
+router.patch('/profile', authenticate, async (req, res) => {
+  try {
+    const user = await authService.updateUserProfile(req.user.userId, req.body || {});
+    const token = authService.createAuthToken(user);
+    authService.setAuthCookie(res, token);
+    return res.json({ user });
+  } catch (error) {
+    if (error.name === 'ValidationError') {
+      return res.status(400).json({ error: error.message });
+    }
+    if (error.name === 'ConflictError') {
+      return res.status(409).json({ error: error.message });
+    }
+
+    console.error('[Auth] profile update failed:', {
+      message: error.message,
+      code: error.code,
+      stack: error.stack,
+    });
+
+    return res.status(500).json({ error: 'Profil konnte nicht gespeichert werden.' });
+  }
 });
 
 module.exports = router;

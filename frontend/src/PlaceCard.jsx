@@ -32,16 +32,18 @@ function PlaceCard({ place, onClick }) {
       >
         {place.title}
       </h3>
-      <p
-        style={{
-          margin: 0,
-          fontSize: "13px",
-          color: "#6b7280",
-          lineHeight: "1.4",
-        }}
-      >
-        {place.description}
-      </p>
+      {place.description && (
+        <p
+          style={{
+            margin: 0,
+            fontSize: "13px",
+            color: "#6b7280",
+            lineHeight: "1.4",
+          }}
+        >
+          {place.description}
+        </p>
+      )}
       {place.category && (
         <div
           style={{

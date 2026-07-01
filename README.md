@@ -115,7 +115,7 @@ Kriterium | SSE | WebSockets
 Richtung | Server → Client | Bidirektional
 Komplexität im Code | Gering | Mittel
 Reconnect bei Verbindungsabbruch | Automatisch (Browser) | Manuell / socket.io übernimmt
-Geeignet für unser Projekt | ✅ | ✅
+Geeignet für mein Projekt
 Warum? | Die App benötigt vor allem Server-Updates, wenn andere Nutzer neue Orte anlegen. | WebSockets sind praktisch, weil der Client beim Erstellen des Ortes aktiv ein Ereignis abschickt und andere Browser sofort informiert.
 
 **Was passiert beim Server-Neustart?**

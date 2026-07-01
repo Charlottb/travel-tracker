@@ -108,7 +108,7 @@ export default function CategoryBadge({ category, className = '' }) {
 
   return (
     <span
-      className={`inline-flex max-w-full items-center gap-2 rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-800 ring-1 ring-emerald-100 ${className}`}
+      className={`inline-flex max-w-full items-center gap-2 rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-800 ring-1 ring-slate-200 ${className}`}
     >
       <CategoryIcon type={getCategoryIconType(category)} className="h-3.5 w-3.5 shrink-0" />
       <span className="truncate">{label}</span>

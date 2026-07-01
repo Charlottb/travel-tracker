@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 
-function Navbar({ activeNav = "karte", setActiveNav = () => {}, onAddPlace = () => {} }) {
+function Navbar({ activeNav = "meine-orte", setActiveNav = () => {}, onAddPlace = () => {} }) {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [email, setEmail] = useState("");
   const [showLoginModal, setShowLoginModal] = useState(false);
@@ -74,31 +74,6 @@ function Navbar({ activeNav = "karte", setActiveNav = () => {}, onAddPlace = () 
             gap: "24px",
           }}
         >
-          <a
-            href="#"
-            onClick={(e) => {
-              e.preventDefault();
-              setActiveNav("karte");
-            }}
-            style={{
-              color: activeNav === "karte" ? "#3b82f6" : "#6b7280",
-              textDecoration: "none",
-              fontSize: "14px",
-              fontWeight: "500",
-              cursor: "pointer",
-              transition: "color 0.2s",
-              borderBottom: activeNav === "karte" ? "2px solid #3b82f6" : "2px solid transparent",
-              paddingBottom: "4px",
-            }}
-            onMouseEnter={(e) => {
-              if (activeNav !== "karte") e.target.style.color = "#1f2937";
-            }}
-            onMouseLeave={(e) => {
-              if (activeNav !== "karte") e.target.style.color = "#6b7280";
-            }}
-          >
-            Karte
-          </a>
           <a
             href="#"
             onClick={(e) => {

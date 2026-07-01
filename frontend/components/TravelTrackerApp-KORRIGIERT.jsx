@@ -22,7 +22,7 @@ export default function TravelTrackerApp({ initialPlaces = [] }) {
   const [selectedPlace, setSelectedPlace] = useState(null);
   const [sidebarMode, setSidebarMode] = useState('list');
   const [formCoords, setFormCoords] = useState(null);
-  const [activeNav, setActiveNav] = useState('karte');
+  const [activeNav, setActiveNav] = useState('meine-orte');
   
   // ✅ Fehler- und Lade-Status
   const [isLoading, setIsLoading] = useState(false);
