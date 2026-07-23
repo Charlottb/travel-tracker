@@ -141,33 +141,35 @@ function LandingPage() {
         </div>
       </nav>
 
-      <section className="mx-auto grid min-h-[calc(100vh-5.25rem)] max-w-6xl items-center gap-12 px-5 pb-16 pt-8 sm:px-8 lg:grid-cols-[1fr_0.92fr] lg:pb-20">
-        <div className="max-w-2xl">
-          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-emerald-700">
-            Lieblingsorte einfach merken
-          </p>
-          <h1 className="mt-5 text-5xl font-semibold leading-[1.02] tracking-tight text-slate-950 sm:text-6xl">
-            Deine Reiseorte auf einer Karte.
-          </h1>
-          <p className="mt-6 max-w-xl text-lg leading-8 text-slate-600">
-            Speichere schöne Orte, plane deine nächste Reise und teile besondere Spots mit Freund:innen.
-          </p>
-          <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-            <Link href="/register" className="inline-flex items-center justify-center rounded-full bg-emerald-500 px-6 py-3 text-base font-semibold text-slate-950 shadow-lg shadow-emerald-200 transition hover:bg-emerald-400">
-              Kostenlos starten
-            </Link>
-            <Link href="/login" className="inline-flex items-center justify-center rounded-full border border-slate-300 bg-white px-6 py-3 text-base font-semibold text-slate-800 shadow-sm transition hover:border-slate-400">
-              Ich habe ein Konto
-            </Link>
-          </div>
-          <div className="mt-8 flex flex-wrap gap-3 text-sm font-medium text-slate-600">
-            <span className="rounded-full border border-slate-200 bg-white px-4 py-2 shadow-sm">Keine Listen-Chaos</span>
-            <span className="rounded-full border border-slate-200 bg-white px-4 py-2 shadow-sm">Schnell per Karte</span>
-            <span className="rounded-full border border-slate-200 bg-white px-4 py-2 shadow-sm">Mit Freunden teilbar</span>
+      <section className="relative min-h-[calc(100vh-5.25rem)] overflow-hidden pb-16 pt-14 lg:pb-20 lg:pt-20">
+        <HeroRouteGraphic />
+
+        <div className="relative z-10 mx-auto max-w-6xl px-5 sm:px-8">
+          <div className="max-w-xl">
+            <p className="text-sm font-semibold uppercase tracking-[0.18em] text-emerald-700">
+              Lieblingsorte einfach merken
+            </p>
+            <h1 className="mt-5 text-5xl font-semibold leading-[1.02] tracking-tight text-slate-950 sm:text-6xl">
+              Deine Reiseorte auf einer Karte.
+            </h1>
+            <p className="mt-6 max-w-xl text-lg leading-8 text-slate-600">
+              Speichere schöne Orte, plane deine nächste Reise und teile besondere Spots mit Freund:innen.
+            </p>
+            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+              <Link href="/register" className="inline-flex items-center justify-center rounded-full bg-emerald-500 px-6 py-3 text-base font-semibold text-slate-950 shadow-lg shadow-emerald-200 transition hover:bg-emerald-400">
+                Kostenlos starten
+              </Link>
+              <Link href="/login" className="inline-flex items-center justify-center rounded-full border border-slate-300 bg-white px-6 py-3 text-base font-semibold text-slate-800 shadow-sm transition hover:border-slate-400">
+                Ich habe ein Konto
+              </Link>
+            </div>
+            <div className="mt-8 flex flex-wrap gap-3 text-sm font-medium text-slate-600">
+              <span className="rounded-full border border-slate-200 bg-white px-4 py-2 shadow-sm">Keine Listen-Chaos</span>
+              <span className="rounded-full border border-slate-200 bg-white px-4 py-2 shadow-sm">Schnell per Karte</span>
+              <span className="rounded-full border border-slate-200 bg-white px-4 py-2 shadow-sm">Mit Freunden teilbar</span>
+            </div>
           </div>
         </div>
-
-        <TravelIllustration />
       </section>
 
       <section className="border-t border-slate-200 bg-white">
@@ -189,48 +191,53 @@ function LandingPage() {
   );
 }
 
-function TravelIllustration() {
+function HeroRouteGraphic() {
   return (
-    <div className="relative mx-auto w-full max-w-xl">
-      <div className="absolute -left-4 top-12 h-24 w-24 rounded-full bg-yellow-200/70 blur-2xl" />
-      <div className="absolute -right-3 bottom-14 h-32 w-32 rounded-full bg-emerald-200/70 blur-2xl" />
-      <div className="relative rounded-[2rem] border border-slate-200 bg-white p-5 shadow-2xl shadow-slate-200/70">
-        <div className="relative overflow-hidden rounded-[1.5rem] bg-[#f7f0e6] p-5">
-          <div className="absolute left-0 top-1/2 h-px w-full bg-white/70" />
-          <div className="absolute left-1/3 top-0 h-full w-px bg-white/70" />
-          <div className="absolute right-1/4 top-0 h-full w-px bg-white/60" />
+    <div className="pointer-events-none absolute inset-0">
+      <svg viewBox="0 0 1180 620" className="absolute left-1/2 top-10 h-full w-[130vw] min-w-[980px] -translate-x-1/2 overflow-visible" aria-hidden="true">
+        <defs>
+          <filter id="routeShadow" x="-20%" y="-20%" width="140%" height="140%">
+            <feDropShadow dx="0" dy="18" stdDeviation="18" floodColor="#10b981" floodOpacity="0.16" />
+          </filter>
+          <filter id="pinShadow" x="-35%" y="-25%" width="170%" height="170%">
+            <feDropShadow dx="0" dy="18" stdDeviation="12" floodColor="#0f172a" floodOpacity="0.14" />
+          </filter>
+        </defs>
 
-          <svg viewBox="0 0 520 330" className="relative h-auto w-full" aria-hidden="true">
-            <path d="M53 212 C116 140 181 143 239 190 C302 242 371 225 455 116" fill="none" stroke="#f2b633" strokeWidth="9" strokeLinecap="round" />
-            <path d="M53 212 C119 159 184 152 243 194 C305 238 372 218 455 116" fill="none" stroke="#ffffff" strokeWidth="3" strokeLinecap="round" strokeDasharray="10 14" opacity="0.85" />
-            <g transform="translate(95 130)">
-              <path d="M36 0C16 0 0 16 0 36c0 26 36 66 36 66s36-40 36-66C72 16 56 0 36 0z" fill="#10b981" />
-              <circle cx="36" cy="36" r="14" fill="#ffffff" />
-            </g>
-            <g transform="translate(238 182)">
-              <path d="M28 0C13 0 0 13 0 28c0 20 28 51 28 51s28-31 28-51C56 13 44 0 28 0z" fill="#0f172a" />
-              <circle cx="28" cy="28" r="10" fill="#ffffff" />
-            </g>
-            <g transform="translate(404 73)">
-              <path d="M34 0C15 0 0 15 0 34c0 25 34 62 34 62s34-37 34-62C68 15 53 0 34 0z" fill="#fbbf24" />
-              <circle cx="34" cy="34" r="13" fill="#ffffff" />
-            </g>
-          </svg>
+        <path
+          d="M-86 356 C54 302 152 347 261 414 C383 488 551 465 682 360 C789 274 712 155 830 126 C955 96 1032 209 984 320 C932 441 772 397 785 286 C798 168 955 186 1080 125 C1164 84 1227 20 1286 -32"
+          fill="none"
+          stroke="#d1fae5"
+          strokeWidth="62"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          opacity="0.78"
+        />
+        <path
+          d="M-86 356 C54 302 152 347 261 414 C383 488 551 465 682 360 C789 274 712 155 830 126 C955 96 1032 209 984 320 C932 441 772 397 785 286 C798 168 955 186 1080 125 C1164 84 1227 20 1286 -32"
+          fill="none"
+          stroke="#10B981"
+          strokeWidth="34"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          filter="url(#routeShadow)"
+        />
 
-          <div className="absolute left-7 top-7 rounded-2xl bg-white/95 px-4 py-3 shadow-sm ring-1 ring-slate-200">
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">Trip</p>
-            <p className="mt-1 text-sm font-semibold text-slate-900">Sommerroute</p>
-          </div>
+        <g transform="translate(285 361)" filter="url(#pinShadow)">
+          <circle cx="36" cy="36" r="27" fill="#f8fafc" />
+          <circle cx="36" cy="36" r="15" fill="#10B981" />
+        </g>
 
-          <div className="absolute bottom-7 right-7 flex items-center gap-2 rounded-full bg-white px-3 py-2 shadow-sm ring-1 ring-slate-200">
-            <span className="flex -space-x-2">
-              <span className="h-7 w-7 rounded-full border-2 border-white bg-emerald-400" />
-              <span className="h-7 w-7 rounded-full border-2 border-white bg-yellow-300" />
-            </span>
-            <span className="text-sm font-semibold text-slate-700">geteilt</span>
-          </div>
-        </div>
-      </div>
+        <g transform="translate(784 84)" filter="url(#pinShadow)">
+          <circle cx="42" cy="42" r="31" fill="#34D399" />
+          <circle cx="42" cy="42" r="15" fill="#ffffff" />
+        </g>
+
+        <g transform="translate(972 254)" filter="url(#pinShadow)">
+          <circle cx="38" cy="38" r="29" fill="#E5E7EB" />
+          <circle cx="38" cy="38" r="14" fill="#10B981" />
+        </g>
+      </svg>
     </div>
   );
 }
