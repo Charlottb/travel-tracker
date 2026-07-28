@@ -18,12 +18,7 @@ router.get('/public-shares/:token', async (req, res) => {
       return res.status(400).json({ error: error.message });
     }
 
-    console.error('[Places] GET /places/public-shares/:token Error:', {
-      message: error.message,
-      code: error.code,
-      stack: error.stack,
-    });
-    return res.status(500).json({ error: 'Geteilter Ort konnte nicht geladen werden', details: error.message });
+    return res.status(500).json({ error: 'Geteilter Ort konnte nicht geladen werden' });
   }
 });
 
@@ -32,12 +27,7 @@ router.get('/', authenticate, async (req, res) => {
     const places = await placesService.getPlacesForUser(req.user.userId);
     return res.json(places);
   } catch (error) {
-    console.error('[Places] GET /places Error:', {
-      message: error.message,
-      code: error.code,
-      stack: error.stack,
-    });
-    return res.status(500).json({ error: 'Failed to load places', details: error.message });
+    return res.status(500).json({ error: 'Failed to load places' });
   }
 });
 
@@ -50,12 +40,7 @@ router.post('/', authenticate, async (req, res) => {
       return res.status(400).json({ error: error.message });
     }
 
-    console.error('[Places] POST /places Error:', {
-      message: error.message,
-      code: error.code,
-      stack: error.stack,
-    });
-    return res.status(500).json({ error: 'Failed to save place', details: error.message });
+    return res.status(500).json({ error: 'Failed to save place' });
   }
 });
 
@@ -78,12 +63,7 @@ router.put('/:id', authenticate, async (req, res) => {
       return res.status(400).json({ error: error.message });
     }
 
-    console.error('[Places] PUT /places/:id Error:', {
-      message: error.message,
-      code: error.code,
-      stack: error.stack,
-    });
-    return res.status(500).json({ error: 'Speichern fehlgeschlagen', details: error.message });
+    return res.status(500).json({ error: 'Speichern fehlgeschlagen' });
   }
 });
 
@@ -102,12 +82,7 @@ router.delete('/:id', authenticate, async (req, res) => {
 
     return res.json({ success: true });
   } catch (error) {
-    console.error('[Places] DELETE /places/:id Error:', {
-      message: error.message,
-      code: error.code,
-      stack: error.stack,
-    });
-    return res.status(500).json({ error: 'Loeschen fehlgeschlagen', details: error.message });
+    return res.status(500).json({ error: 'Loeschen fehlgeschlagen' });
   }
 });
 
@@ -130,12 +105,7 @@ router.post('/:id/share', authenticate, async (req, res) => {
       return res.status(400).json({ error: error.message });
     }
 
-    console.error('[Places] POST /places/:id/share Error:', {
-      message: error.message,
-      code: error.code,
-      stack: error.stack,
-    });
-    return res.status(500).json({ error: 'Teilen fehlgeschlagen', details: error.message });
+    return res.status(500).json({ error: 'Teilen fehlgeschlagen' });
   }
 });
 
@@ -154,12 +124,7 @@ router.post('/:id/public-share', authenticate, async (req, res) => {
 
     return res.status(201).json(place);
   } catch (error) {
-    console.error('[Places] POST /places/:id/public-share Error:', {
-      message: error.message,
-      code: error.code,
-      stack: error.stack,
-    });
-    return res.status(500).json({ error: 'Share-Link konnte nicht erstellt werden', details: error.message });
+    return res.status(500).json({ error: 'Share-Link konnte nicht erstellt werden' });
   }
 });
 
@@ -178,12 +143,7 @@ router.delete('/:id/public-share', authenticate, async (req, res) => {
 
     return res.json(place);
   } catch (error) {
-    console.error('[Places] DELETE /places/:id/public-share Error:', {
-      message: error.message,
-      code: error.code,
-      stack: error.stack,
-    });
-    return res.status(500).json({ error: 'Share-Link konnte nicht deaktiviert werden', details: error.message });
+    return res.status(500).json({ error: 'Share-Link konnte nicht deaktiviert werden' });
   }
 });
 
@@ -203,12 +163,7 @@ router.delete('/:id/share/:shareId', authenticate, async (req, res) => {
 
     return res.json(sharedPlace);
   } catch (error) {
-    console.error('[Places] DELETE /places/:id/share/:shareId Error:', {
-      message: error.message,
-      code: error.code,
-      stack: error.stack,
-    });
-    return res.status(500).json({ error: 'Freigabe entfernen fehlgeschlagen', details: error.message });
+    return res.status(500).json({ error: 'Freigabe entfernen fehlgeschlagen' });
   }
 });
 

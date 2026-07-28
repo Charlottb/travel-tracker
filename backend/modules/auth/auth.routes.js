@@ -17,11 +17,7 @@ router.post('/register', async (req, res) => {
       return res.status(409).json({ error: error.message });
     }
 
-    console.error('[Auth] register failed:', {
-      message: error.message,
-      code: error.code,
-      stack: error.stack,
-    });
+    console.error('[Auth] register failed.');
 
     return res.status(500).json({ error: 'Registrierung fehlgeschlagen.' });
   }
@@ -38,11 +34,7 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ error: error.message });
     }
 
-    console.error('[Auth] login failed:', {
-      message: error.message,
-      code: error.code,
-      stack: error.stack,
-    });
+    console.error('[Auth] login failed.');
 
     return res.status(500).json({ error: 'Login fehlgeschlagen.' });
   }
@@ -63,11 +55,7 @@ router.get('/me', authenticate, async (req, res) => {
 
     return res.json({ user });
   } catch (error) {
-    console.error('[Auth] me failed:', {
-      message: error.message,
-      code: error.code,
-      stack: error.stack,
-    });
+    console.error('[Auth] me failed.');
 
     return res.status(500).json({ error: 'Profil konnte nicht geladen werden.' });
   }
@@ -87,11 +75,7 @@ router.patch('/profile', authenticate, async (req, res) => {
       return res.status(409).json({ error: error.message });
     }
 
-    console.error('[Auth] profile update failed:', {
-      message: error.message,
-      code: error.code,
-      stack: error.stack,
-    });
+    console.error('[Auth] profile update failed.');
 
     return res.status(500).json({ error: 'Profil konnte nicht gespeichert werden.' });
   }

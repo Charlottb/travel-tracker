@@ -32,8 +32,7 @@ async function getSharedPlace(token) {
     }
 
     return response.json();
-  } catch (error) {
-    console.error('[share/[token]] Failed to load shared place:', error);
+  } catch (_error) {
     return null;
   }
 }

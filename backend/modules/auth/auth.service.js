@@ -19,7 +19,7 @@ function getAuthCookieOptions() {
 
   return {
     httpOnly: true,
-    sameSite: isProduction ? 'none' : 'lax',
+    sameSite: 'lax',
     secure: isProduction,
     path: '/',
   };
