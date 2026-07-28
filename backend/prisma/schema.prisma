@@ -21,15 +21,16 @@ model User {
 }
 
 model Place {
-  id          Int           @id @default(autoincrement())
+  id          Int               @id @default(autoincrement())
   title       String
   description String?
   category    String?
   lat         Float
   lng         Float
   userId      Int
-  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user        User              @relation(fields: [userId], references: [id], onDelete: Cascade)
   shares      SharedPlace[]
+  publicShare PublicPlaceShare?
 }
 
 model SharedPlace {
@@ -45,4 +46,16 @@ model SharedPlace {
   @@unique([placeId, recipientId])
   @@index([recipientId])
   @@index([sharedById])
+}
+
+model PublicPlaceShare {
+  id         Int       @id @default(autoincrement())
+  placeId    Int       @unique
+  tokenHash  String    @unique
+  createdAt  DateTime  @default(now())
+  disabledAt DateTime?
+  place      Place     @relation(fields: [placeId], references: [id], onDelete: Cascade)
+
+  @@index([placeId])
+  @@index([disabledAt])
 }

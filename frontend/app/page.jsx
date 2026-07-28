@@ -124,24 +124,24 @@ function LandingPage() {
 
   return (
     <main className="min-h-screen bg-[#fbfaf7] text-slate-950">
-      <nav className="mx-auto flex max-w-6xl items-center justify-between px-5 py-6 sm:px-8">
-        <Link href="/" className="flex items-center gap-3 text-base font-semibold">
-          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-950 text-white">
-            <MapPinIcon className="h-5 w-5" />
+      <nav className="mx-auto flex max-w-6xl items-center justify-between px-5 py-7 sm:px-8">
+        <Link href="/" className="flex items-center gap-4 text-xl font-semibold">
+          <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-950 text-white shadow-sm">
+            <MapPinIcon className="h-6 w-6" />
           </span>
           Travel Tracker
         </Link>
-        <div className="flex items-center gap-3">
-          <Link href="/login" className="rounded-full px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-white">
+        <div className="flex items-center gap-4">
+          <Link href="/login" className="rounded-full px-5 py-3 text-base font-semibold text-slate-700 transition hover:bg-white">
             Login
           </Link>
-          <Link href="/register" className="rounded-full bg-slate-950 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800">
+          <Link href="/register" className="rounded-full bg-slate-950 px-6 py-3 text-base font-semibold text-white shadow-md shadow-slate-200 transition hover:bg-slate-800">
             Registrieren
           </Link>
         </div>
       </nav>
 
-      <section className="relative min-h-[calc(100vh-5.25rem)] overflow-hidden pb-16 pt-14 lg:pb-20 lg:pt-20">
+      <section className="relative min-h-[calc(100vh-5.25rem)] overflow-hidden pb-16 pt-8 lg:pb-20 lg:pt-12">
         <HeroRouteGraphic />
 
         <div className="relative z-10 mx-auto max-w-6xl px-5 sm:px-8">
@@ -170,9 +170,17 @@ function LandingPage() {
             </div>
           </div>
         </div>
+
+        <a
+          href="#features"
+          aria-label="Mehr Inhalte anzeigen"
+          className="absolute bottom-20 right-5 z-20 flex h-16 w-16 items-center justify-center rounded-full border border-emerald-100 bg-white text-emerald-600 shadow-xl shadow-emerald-100/80 ring-8 ring-[#fbfaf7] transition hover:-translate-y-1 hover:border-emerald-200 hover:bg-emerald-50 sm:right-8 lg:right-[max(2rem,calc((100vw-72rem)/2))]"
+        >
+          <ArrowDownIcon className="h-7 w-7" />
+        </a>
       </section>
 
-      <section className="border-t border-slate-200 bg-white">
+      <section id="features" className="scroll-mt-8 border-t border-slate-200 bg-white">
         <div className="mx-auto grid max-w-6xl gap-4 px-5 py-12 sm:px-8 md:grid-cols-3">
           {features.map((feature) => (
             <article key={feature.title} className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
@@ -192,50 +200,55 @@ function LandingPage() {
 }
 
 function HeroRouteGraphic() {
+  const routePath =
+    'M-260 320 C-122 332 18 370 162 428 C260 468 340 436 424 487 C548 554 672 508 744 414 C801 340 771 250 850 211 C933 170 1015 224 1001 310 C985 406 858 408 861 325 C864 250 955 256 1050 205 C1128 163 1188 100 1248 44';
+
   return (
     <div className="pointer-events-none absolute inset-0">
-      <svg viewBox="0 0 1180 620" className="absolute left-1/2 top-10 h-full w-[130vw] min-w-[980px] -translate-x-1/2 overflow-visible" aria-hidden="true">
+      <svg viewBox="0 0 1180 620" className="absolute left-[53%] top-6 h-full w-[126vw] min-w-[980px] -translate-x-1/2 overflow-visible" aria-hidden="true">
         <defs>
           <filter id="routeShadow" x="-20%" y="-20%" width="140%" height="140%">
-            <feDropShadow dx="0" dy="18" stdDeviation="18" floodColor="#10b981" floodOpacity="0.16" />
+            <feDropShadow dx="0" dy="14" stdDeviation="14" floodColor="#10b981" floodOpacity="0.1" />
           </filter>
           <filter id="pinShadow" x="-35%" y="-25%" width="170%" height="170%">
-            <feDropShadow dx="0" dy="18" stdDeviation="12" floodColor="#0f172a" floodOpacity="0.14" />
+            <feDropShadow dx="0" dy="14" stdDeviation="10" floodColor="#0f172a" floodOpacity="0.12" />
           </filter>
         </defs>
 
         <path
-          d="M-86 356 C54 302 152 347 261 414 C383 488 551 465 682 360 C789 274 712 155 830 126 C955 96 1032 209 984 320 C932 441 772 397 785 286 C798 168 955 186 1080 125 C1164 84 1227 20 1286 -32"
+          d={routePath}
           fill="none"
-          stroke="#d1fae5"
-          strokeWidth="62"
+          stroke="#d8f8ea"
+          strokeWidth="46"
           strokeLinecap="round"
           strokeLinejoin="round"
-          opacity="0.78"
+          opacity="0.62"
         />
         <path
-          d="M-86 356 C54 302 152 347 261 414 C383 488 551 465 682 360 C789 274 712 155 830 126 C955 96 1032 209 984 320 C932 441 772 397 785 286 C798 168 955 186 1080 125 C1164 84 1227 20 1286 -32"
+          d={routePath}
           fill="none"
-          stroke="#10B981"
-          strokeWidth="34"
+          stroke="#34D399"
+          strokeWidth="24"
           strokeLinecap="round"
           strokeLinejoin="round"
           filter="url(#routeShadow)"
         />
 
-        <g transform="translate(285 361)" filter="url(#pinShadow)">
-          <circle cx="36" cy="36" r="27" fill="#f8fafc" />
-          <circle cx="36" cy="36" r="15" fill="#10B981" />
+        <g transform="translate(438 448)" filter="url(#pinShadow)">
+          <path d="M32 62s21-17 21-34a21 21 0 0 0-42 0c0 17 21 34 21 34z" fill="#ffffff" />
+          <path d="M32 54s15-13 15-26a15 15 0 0 0-30 0c0 13 15 26 15 26z" fill="#34D399" />
+          <circle cx="32" cy="28" r="6" fill="#ffffff" />
         </g>
 
-        <g transform="translate(784 84)" filter="url(#pinShadow)">
-          <circle cx="42" cy="42" r="31" fill="#34D399" />
-          <circle cx="42" cy="42" r="15" fill="#ffffff" />
+        <g transform="translate(814 172)" filter="url(#pinShadow)">
+          <path d="M34 64s22-18 22-36a22 22 0 0 0-44 0c0 18 22 36 22 36z" fill="#34D399" />
+          <circle cx="34" cy="28" r="10" fill="#ffffff" />
         </g>
 
-        <g transform="translate(972 254)" filter="url(#pinShadow)">
-          <circle cx="38" cy="38" r="29" fill="#E5E7EB" />
-          <circle cx="38" cy="38" r="14" fill="#10B981" />
+        <g transform="translate(956 280)" filter="url(#pinShadow)">
+          <path d="M31 59s20-16 20-33a20 20 0 0 0-40 0c0 17 20 33 20 33z" fill="#E5E7EB" />
+          <path d="M31 51s14-12 14-25a14 14 0 0 0-28 0c0 13 14 25 14 25z" fill="#ffffff" />
+          <circle cx="31" cy="26" r="5.5" fill="#10B981" />
         </g>
       </svg>
     </div>
@@ -247,6 +260,15 @@ function MapPinIcon({ className = '' }) {
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={className} aria-hidden="true">
       <path d="M12 21s7-5.5 7-12a7 7 0 0 0-14 0c0 6.5 7 12 7 12z" />
       <circle cx="12" cy="9" r="2.5" />
+    </svg>
+  );
+}
+
+function ArrowDownIcon({ className = '' }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden="true">
+      <path d="M12 5v14" />
+      <path d="m6 13 6 6 6-6" />
     </svg>
   );
 }
