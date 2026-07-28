@@ -282,7 +282,12 @@ async function createPlace(placeData, userId) {
 
   const recipient = await authService.getUserNotificationRecipient(userId);
 
-  broadcastPlaceCreated(newPlace);
+  broadcastPlaceCreated(newPlace).catch((error) => {
+    console.error('[Places] SSE place-created broadcast failed:', {
+      message: error.message,
+      placeId: newPlace.id,
+    });
+  });
 
   if (recipient) {
     enqueuePlaceCreatedEmail({

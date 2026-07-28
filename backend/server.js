@@ -8,6 +8,7 @@ const cookieParser = require('cookie-parser');
 const { Server } = require('socket.io');
 const authRouter = require('./modules/auth/auth.routes');
 const placesRouter = require('./modules/places/places.routes');
+const authenticate = require('./middleware/authenticate');
 const { registerClient, removeClient } = require('./lib/sse');
 
 const app = express();
@@ -20,7 +21,7 @@ app.use(
   }),
 );
 
-app.get('/api/events', (req, res) => {
+app.get('/api/events', authenticate, (req, res) => {
   res.set({
     'Content-Type': 'text/event-stream',
     'Cache-Control': 'no-cache',
@@ -34,7 +35,7 @@ app.get('/api/events', (req, res) => {
     res.write(': keep-alive\n\n');
   }, 20000);
 
-  registerClient(res);
+  registerClient(res, req.user);
 
   req.on('close', () => {
     clearInterval(keepAlive);
