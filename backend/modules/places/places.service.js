@@ -1,7 +1,44 @@
+const crypto = require('crypto');
 const prisma = require('../../lib/prisma');
 const authService = require('../auth/auth.service');
 const { broadcastPlaceCreated } = require('../../lib/sse');
 const { enqueuePlaceCreatedEmail } = require('../../lib/emailQueue');
+
+const PUBLIC_SHARE_TOKEN_BYTES = 32;
+const PUBLIC_SHARE_TOKEN_PATTERN = /^[A-Za-z0-9_-]{32,128}$/;
+
+function createPublicShareToken() {
+  return crypto.randomBytes(PUBLIC_SHARE_TOKEN_BYTES).toString('base64url');
+}
+
+function hashPublicShareToken(token) {
+  return crypto.createHash('sha256').update(token, 'utf8').digest('hex');
+}
+
+function validatePublicShareToken(token) {
+  if (typeof token !== 'string' || !PUBLIC_SHARE_TOKEN_PATTERN.test(token)) {
+    const error = new Error('Ungueltiger Share-Link.');
+    error.name = 'ValidationError';
+    throw error;
+  }
+}
+
+function buildPublicShareUrl(token) {
+  const frontendUrl = (process.env.FRONTEND_URL || 'http://localhost:3000').replace(/\/$/, '');
+  return `${frontendUrl}/share/${token}`;
+}
+
+function serializePublicShare(publicShare, token = null) {
+  if (!publicShare || publicShare.disabledAt) {
+    return null;
+  }
+
+  return {
+    enabled: true,
+    createdAt: publicShare.createdAt,
+    ...(token ? { url: buildPublicShareUrl(token), token } : {}),
+  };
+}
 
 function validatePlaceData({ lat, lng, title }) {
   if (
@@ -70,6 +107,7 @@ async function getPlacesForUser(userId) {
         },
         orderBy: { createdAt: 'asc' },
       },
+      publicShare: true,
     },
     orderBy: { id: 'asc' },
   });
@@ -99,9 +137,26 @@ function decoratePlaceForUser(place, userId) {
     userId: place.userId,
     owner,
     shares: place.userId === userId ? ownShares : [],
+    publicShare: place.userId === userId ? serializePublicShare(place.publicShare) : null,
     sharedWithMe: place.userId !== userId,
     sharedBy: place.userId !== userId ? shareForCurrentUser?.sharedBy || owner : null,
     canEdit: place.userId === userId,
+  };
+}
+
+function decoratePublicPlace(place) {
+  return {
+    title: place.title,
+    description: place.description,
+    category: place.category,
+    lat: place.lat,
+    lng: place.lng,
+    owner: place.user
+      ? {
+          name: place.user.name,
+        }
+      : null,
+    canEdit: false,
   };
 }
 
@@ -231,6 +286,103 @@ async function unsharePlace(id, ownerId, shareId) {
   return getPlaceForOwner(id, ownerId);
 }
 
+async function createPublicShareLink(id, ownerId) {
+  const existingPlace = await prisma.place.findFirst({
+    where: {
+      id,
+      userId: ownerId,
+    },
+    select: {
+      id: true,
+    },
+  });
+
+  if (!existingPlace) {
+    return null;
+  }
+
+  const token = createPublicShareToken();
+  const tokenHash = hashPublicShareToken(token);
+
+  const publicShare = await prisma.publicPlaceShare.upsert({
+    where: {
+      placeId: id,
+    },
+    update: {
+      tokenHash,
+      disabledAt: null,
+      createdAt: new Date(),
+    },
+    create: {
+      placeId: id,
+      tokenHash,
+    },
+  });
+
+  const place = await getPlaceForOwner(id, ownerId);
+
+  return {
+    ...place,
+    publicShare: serializePublicShare(publicShare, token),
+  };
+}
+
+async function disablePublicShareLink(id, ownerId) {
+  const publicShare = await prisma.publicPlaceShare.findFirst({
+    where: {
+      placeId: id,
+      place: {
+        userId: ownerId,
+      },
+    },
+    select: {
+      id: true,
+    },
+  });
+
+  if (!publicShare) {
+    return null;
+  }
+
+  await prisma.publicPlaceShare.update({
+    where: {
+      id: publicShare.id,
+    },
+    data: {
+      disabledAt: new Date(),
+    },
+  });
+
+  return getPlaceForOwner(id, ownerId);
+}
+
+async function getPublicSharedPlace(token) {
+  validatePublicShareToken(token);
+
+  const publicShare = await prisma.publicPlaceShare.findUnique({
+    where: {
+      tokenHash: hashPublicShareToken(token),
+    },
+    include: {
+      place: {
+        include: {
+          user: {
+            select: {
+              name: true,
+            },
+          },
+        },
+      },
+    },
+  });
+
+  if (!publicShare || publicShare.disabledAt || !publicShare.place) {
+    return null;
+  }
+
+  return decoratePublicPlace(publicShare.place);
+}
+
 async function getPlaceForOwner(id, ownerId) {
   const place = await prisma.place.findFirst({
     where: {
@@ -264,6 +416,7 @@ async function getPlaceForOwner(id, ownerId) {
         },
         orderBy: { createdAt: 'asc' },
       },
+      publicShare: true,
     },
   });
 
@@ -277,4 +430,7 @@ module.exports = {
   deletePlace,
   sharePlace,
   unsharePlace,
+  createPublicShareLink,
+  disablePublicShareLink,
+  getPublicSharedPlace,
 };
