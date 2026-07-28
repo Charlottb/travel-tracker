@@ -8,17 +8,22 @@ import ProfilePanel from './ProfilePanel';
 export default function Sidebar({
   mode = 'list',
   places = [],
+  tripFilter = '',
+  tripOptions = [],
   profilePlaces = [],
   currentUser = null,
   selectedPlace = null,
   formCoords = null,
   highlightPlaceId = null,
   onPlaceCardClick = () => {},
+  onTripFilterChange = () => {},
   onSavePlace = () => {},
   onEditPlace = () => {},
   onDeletePlace = () => {},
   onSharePlace = async () => {},
   onUnsharePlace = async () => {},
+  onCreatePublicShareLink = async () => {},
+  onDisablePublicShareLink = async () => {},
   onUpdateProfile = async () => {},
   onCloseForm = () => {},
   isLoading = false,
@@ -57,7 +62,26 @@ export default function Sidebar({
           />
         )}
         {mode === 'list' && (
-          <PlacesList places={places} onPlaceClick={onPlaceCardClick} highlightPlaceId={highlightPlaceId} />
+          <div className="space-y-4">
+            {tripOptions.length > 0 && (
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">Trip filtern</label>
+                <select
+                  value={tripFilter}
+                  onChange={(event) => onTripFilterChange(event.target.value)}
+                  className="mt-2 w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm font-semibold text-slate-800 outline-none transition focus:border-slate-400 focus:ring-4 focus:ring-slate-200"
+                >
+                  <option value="">Alle Trips</option>
+                  {tripOptions.map((tripName) => (
+                    <option key={tripName} value={tripName}>
+                      {tripName}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+            <PlacesList places={places} onPlaceClick={onPlaceCardClick} highlightPlaceId={highlightPlaceId} />
+          </div>
         )}
         {mode === 'detail' && selectedPlace && (
           <PlaceDetail
@@ -66,6 +90,8 @@ export default function Sidebar({
             onDelete={onDeletePlace}
             onSharePlace={onSharePlace}
             onUnsharePlace={onUnsharePlace}
+            onCreatePublicShareLink={onCreatePublicShareLink}
+            onDisablePublicShareLink={onDisablePublicShareLink}
             isLoading={isLoading}
             onClose={onCloseForm}
           />

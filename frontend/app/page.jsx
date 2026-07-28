@@ -234,18 +234,18 @@ function HeroRouteGraphic() {
           filter="url(#routeShadow)"
         />
 
-        <g transform="translate(438 448)" filter="url(#pinShadow)">
+        <g transform="translate(439 445)" filter="url(#pinShadow)">
           <path d="M32 62s21-17 21-34a21 21 0 0 0-42 0c0 17 21 34 21 34z" fill="#ffffff" />
           <path d="M32 54s15-13 15-26a15 15 0 0 0-30 0c0 13 15 26 15 26z" fill="#34D399" />
           <circle cx="32" cy="28" r="6" fill="#ffffff" />
         </g>
 
-        <g transform="translate(814 172)" filter="url(#pinShadow)">
+        <g transform="translate(802 155)" filter="url(#pinShadow)">
           <path d="M34 64s22-18 22-36a22 22 0 0 0-44 0c0 18 22 36 22 36z" fill="#34D399" />
           <circle cx="34" cy="28" r="10" fill="#ffffff" />
         </g>
 
-        <g transform="translate(956 280)" filter="url(#pinShadow)">
+        <g transform="translate(960 282)" filter="url(#pinShadow)">
           <path d="M31 59s20-16 20-33a20 20 0 0 0-40 0c0 17 20 33 20 33z" fill="#E5E7EB" />
           <path d="M31 51s14-12 14-25a14 14 0 0 0-28 0c0 13 14 25 14 25z" fill="#ffffff" />
           <circle cx="31" cy="26" r="5.5" fill="#10B981" />

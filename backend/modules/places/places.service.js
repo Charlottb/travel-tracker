@@ -6,6 +6,19 @@ const { enqueuePlaceCreatedEmail } = require('../../lib/emailQueue');
 
 const PUBLIC_SHARE_TOKEN_BYTES = 32;
 const PUBLIC_SHARE_TOKEN_PATTERN = /^[A-Za-z0-9_-]{32,128}$/;
+const PLACE_STATUS_VALUES = new Set(['want_to_visit', 'planned', 'visited', 'favorite']);
+const PLACE_MOOD_TAG_VALUES = new Set([
+  'ruhig',
+  'aussicht',
+  'guenstig',
+  'romantisch',
+  'kultur',
+  'essen',
+  'geheimtipp',
+  'regenwetter',
+  'sonnenuntergang',
+]);
+const MAX_TRIP_NAME_LENGTH = 80;
 
 function createPublicShareToken() {
   return crypto.randomBytes(PUBLIC_SHARE_TOKEN_BYTES).toString('base64url');
@@ -53,13 +66,107 @@ function validatePlaceData({ lat, lng, title }) {
   }
 }
 
-function buildPlacePayload({ title, description, category, lat, lng, userId }) {
+function normalizeTripName(tripName) {
+  if (tripName == null || tripName === '') {
+    return null;
+  }
+
+  if (typeof tripName !== 'string') {
+    const error = new Error('Invalid data: tripName must be a string');
+    error.name = 'ValidationError';
+    throw error;
+  }
+
+  const trimmedTripName = tripName.trim();
+
+  if (!trimmedTripName) {
+    return null;
+  }
+
+  if (trimmedTripName.length > MAX_TRIP_NAME_LENGTH) {
+    const error = new Error(`Invalid data: tripName must be at most ${MAX_TRIP_NAME_LENGTH} characters`);
+    error.name = 'ValidationError';
+    throw error;
+  }
+
+  return trimmedTripName;
+}
+
+function normalizeStatus(status) {
+  if (status == null || status === '') {
+    return null;
+  }
+
+  if (typeof status !== 'string' || !PLACE_STATUS_VALUES.has(status)) {
+    const error = new Error('Invalid data: status is not allowed');
+    error.name = 'ValidationError';
+    throw error;
+  }
+
+  return status;
+}
+
+function parseMoodTags(moodTags) {
+  if (moodTags == null || moodTags === '') {
+    return [];
+  }
+
+  if (Array.isArray(moodTags)) {
+    return moodTags;
+  }
+
+  if (typeof moodTags !== 'string') {
+    const error = new Error('Invalid data: moodTags must be a JSON string');
+    error.name = 'ValidationError';
+    throw error;
+  }
+
+  try {
+    const parsedMoodTags = JSON.parse(moodTags);
+    return Array.isArray(parsedMoodTags) ? parsedMoodTags : null;
+  } catch (_error) {
+    return null;
+  }
+}
+
+function normalizeMoodTags(moodTags) {
+  const parsedMoodTags = parseMoodTags(moodTags);
+
+  if (!Array.isArray(parsedMoodTags)) {
+    const error = new Error('Invalid data: moodTags must be a JSON array');
+    error.name = 'ValidationError';
+    throw error;
+  }
+
+  const normalizedMoodTags = [...new Set(parsedMoodTags)];
+
+  if (normalizedMoodTags.length === 0) {
+    return null;
+  }
+
+  const hasInvalidMoodTag = normalizedMoodTags.some(
+    (tag) => typeof tag !== 'string' || !PLACE_MOOD_TAG_VALUES.has(tag),
+  );
+
+  if (hasInvalidMoodTag) {
+    const error = new Error('Invalid data: moodTags contains an unknown tag');
+    error.name = 'ValidationError';
+    throw error;
+  }
+
+  return JSON.stringify(normalizedMoodTags);
+}
+
+function buildPlacePayload({ title, description, category, tripName, status, moodTags, lat, lng, userId }) {
   const trimmedDescription = typeof description === 'string' ? description.trim() : '';
 
   return {
     title: title.trim(),
     description: trimmedDescription || null,
     category: typeof category === 'string' ? category : null,
+    tripName: normalizeTripName(tripName),
+    status: normalizeStatus(status),
+    moodTags: normalizeMoodTags(moodTags),
     lat,
     lng,
     userId,
@@ -132,6 +239,9 @@ function decoratePlaceForUser(place, userId) {
     title: place.title,
     description: place.description,
     category: place.category,
+    tripName: place.tripName,
+    status: place.status,
+    moodTags: place.moodTags,
     lat: place.lat,
     lng: place.lng,
     userId: place.userId,
@@ -149,6 +259,9 @@ function decoratePublicPlace(place) {
     title: place.title,
     description: place.description,
     category: place.category,
+    tripName: place.tripName,
+    status: place.status,
+    moodTags: place.moodTags,
     lat: place.lat,
     lng: place.lng,
     owner: place.user

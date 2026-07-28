@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { CATEGORY_OPTIONS, CategoryIcon } from './CategoryBadge';
+import { MOOD_TAG_OPTIONS, STATUS_OPTIONS, parseMoodTags } from './placeMetadata';
 
 const CUSTOM_CATEGORY = '__custom__';
 const categoryChoices = [
@@ -15,6 +16,9 @@ export default function AddPlaceForm({ coords, place = null, onSave, onCancel })
   const [description, setDescription] = useState('');
   const [category, setCategory] = useState('');
   const [customCategory, setCustomCategory] = useState('');
+  const [tripName, setTripName] = useState('');
+  const [status, setStatus] = useState('');
+  const [moodTags, setMoodTags] = useState([]);
   const isEditing = Boolean(place?.id);
   const usesCustomCategory = category === CUSTOM_CATEGORY;
 
@@ -29,7 +33,18 @@ export default function AddPlaceForm({ coords, place = null, onSave, onCancel })
     setDescription(place?.description || '');
     setCategory(savedCategory && !isKnownCategory ? CUSTOM_CATEGORY : savedCategory);
     setCustomCategory(savedCategory && !isKnownCategory ? savedCategory : '');
+    setTripName(place?.tripName || '');
+    setStatus(place?.status || '');
+    setMoodTags(parseMoodTags(place?.moodTags));
   }, [place]);
+
+  const toggleMoodTag = (tag) => {
+    setMoodTags((currentTags) =>
+      currentTags.includes(tag)
+        ? currentTags.filter((currentTag) => currentTag !== tag)
+        : [...currentTags, tag],
+    );
+  };
 
   const handleSubmit = (event) => {
     event.preventDefault();
@@ -58,6 +73,9 @@ export default function AddPlaceForm({ coords, place = null, onSave, onCancel })
       title: title.trim(),
       description: description.trim() || undefined,
       category: finalCategory || undefined,
+      tripName: tripName.trim() || undefined,
+      status: status || undefined,
+      moodTags: moodTags.length > 0 ? JSON.stringify(moodTags) : undefined,
     });
 
     if (!isEditing) {
@@ -65,6 +83,9 @@ export default function AddPlaceForm({ coords, place = null, onSave, onCancel })
       setDescription('');
       setCategory('');
       setCustomCategory('');
+      setTripName('');
+      setStatus('');
+      setMoodTags([]);
     }
   };
 
@@ -100,6 +121,54 @@ export default function AddPlaceForm({ coords, place = null, onSave, onCancel })
         ) : (
           <p>Wähle einen Ort auf der Karte aus, um die Koordinaten automatisch zu übernehmen.</p>
         )}
+      </div>
+      <div>
+        <label className="block text-sm font-semibold text-slate-800">Trip oder Sammlung optional</label>
+        <input
+          value={tripName}
+          onChange={(event) => setTripName(event.target.value)}
+          className="mt-2 w-full rounded-lg border border-slate-200 bg-white px-4 py-3 text-sm text-slate-950 outline-none transition focus:border-slate-400 focus:ring-4 focus:ring-slate-200"
+          maxLength={80}
+          placeholder="z.B. Rom Wochenende, Japan 2026"
+        />
+      </div>
+      <div>
+        <label className="block text-sm font-semibold text-slate-800">Status</label>
+        <select
+          value={status}
+          onChange={(event) => setStatus(event.target.value)}
+          className="mt-2 w-full rounded-lg border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-950 outline-none transition focus:border-slate-400 focus:ring-4 focus:ring-slate-200"
+        >
+          {STATUS_OPTIONS.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </select>
+      </div>
+      <div>
+        <label className="block text-sm font-semibold text-slate-800">Mood-Tags</label>
+        <div className="mt-2 flex flex-wrap gap-2">
+          {MOOD_TAG_OPTIONS.map((tag) => {
+            const isSelected = moodTags.includes(tag);
+
+            return (
+              <button
+                key={tag}
+                type="button"
+                onClick={() => toggleMoodTag(tag)}
+                aria-pressed={isSelected}
+                className={`rounded-full border px-3 py-2 text-sm font-semibold transition ${
+                  isSelected
+                    ? 'border-emerald-500 bg-emerald-50 text-emerald-800 ring-2 ring-emerald-100'
+                    : 'border-slate-200 bg-slate-50 text-slate-700 hover:border-slate-300 hover:bg-white'
+                }`}
+              >
+                {tag}
+              </button>
+            );
+          })}
+        </div>
       </div>
       <div>
         <label className="block text-sm font-semibold text-slate-800">Kategorie</label>

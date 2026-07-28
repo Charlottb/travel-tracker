@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import CategoryBadge from './CategoryBadge';
+import { getStatusLabel, getTripLabel, parseMoodTags } from './placeMetadata';
 
 export default function PlaceDetail({
   place,
@@ -10,16 +11,24 @@ export default function PlaceDetail({
   onClose,
   onSharePlace = async () => {},
   onUnsharePlace = async () => {},
+  onCreatePublicShareLink = async () => {},
+  onDisablePublicShareLink = async () => {},
   isLoading = false,
 }) {
   const [shareEmail, setShareEmail] = useState('');
   const [shareError, setShareError] = useState('');
+  const [publicShareError, setPublicShareError] = useState('');
+  const [copyStatus, setCopyStatus] = useState('');
 
   if (!place) return null;
 
   const canEdit = place.canEdit !== false;
   const shares = Array.isArray(place.shares) ? place.shares : [];
+  const publicShare = place.publicShare?.enabled ? place.publicShare : null;
+  const hasPublicShare = Boolean(publicShare);
   const sharedBy = place.sharedBy?.name || place.sharedBy?.email || place.owner?.name || place.owner?.email;
+  const moodTags = parseMoodTags(place.moodTags);
+  const statusLabel = getStatusLabel(place.status);
 
   const handleShare = async (event) => {
     event.preventDefault();
@@ -33,6 +42,43 @@ export default function PlaceDetail({
     }
   };
 
+  const handleCreatePublicShareLink = async () => {
+    setPublicShareError('');
+    setCopyStatus('');
+
+    try {
+      await onCreatePublicShareLink(place);
+    } catch (error) {
+      setPublicShareError(error.message || 'Share-Link konnte nicht erstellt werden.');
+    }
+  };
+
+  const handleDisablePublicShareLink = async () => {
+    setPublicShareError('');
+    setCopyStatus('');
+
+    try {
+      await onDisablePublicShareLink(place);
+    } catch (error) {
+      setPublicShareError(error.message || 'Share-Link konnte nicht deaktiviert werden.');
+    }
+  };
+
+  const handleCopyPublicShareLink = async () => {
+    if (!publicShare?.url) {
+      return;
+    }
+
+    setPublicShareError('');
+
+    try {
+      await navigator.clipboard.writeText(publicShare.url);
+      setCopyStatus('Link kopiert.');
+    } catch (_error) {
+      setPublicShareError('Link konnte nicht kopiert werden.');
+    }
+  };
+
   return (
     <div className="space-y-6 rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
       <button type="button" onClick={onClose} className="rounded-full px-2 py-1 text-sm font-semibold text-slate-500 transition hover:bg-slate-100 hover:text-slate-900">
@@ -41,6 +87,25 @@ export default function PlaceDetail({
       <div>
         <h2 className="text-xl font-semibold text-slate-950">{place.title}</h2>
         {place.category && <CategoryBadge category={place.category} className="mt-2" />}
+        {(place.tripName || statusLabel || moodTags.length > 0) && (
+          <div className="mt-3 flex flex-wrap gap-2">
+            {place.tripName && (
+              <span className="rounded-full bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-700">
+                {getTripLabel(place.tripName)}
+              </span>
+            )}
+            {statusLabel && (
+              <span className="rounded-full bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700">
+                {statusLabel}
+              </span>
+            )}
+            {moodTags.map((tag) => (
+              <span key={tag} className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-500">
+                {tag}
+              </span>
+            ))}
+          </div>
+        )}
         {place.sharedWithMe && (
           <p className="mt-3 rounded-lg bg-slate-100 px-3 py-2 text-sm font-medium text-slate-800">
             Geteilt von {sharedBy || 'einem anderen Nutzer'}
@@ -60,11 +125,76 @@ export default function PlaceDetail({
           </div>
 
           <div className="space-y-4 border-t border-slate-200 pt-5">
+            <div className="space-y-3">
+              <div>
+                <h3 className="text-sm font-semibold text-slate-950">Öffentlicher Link</h3>
+                <p className="mt-1 text-sm text-slate-500">Personen mit diesem Link können den Ort ansehen.</p>
+              </div>
+
+              {hasPublicShare && (
+                <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+                  {publicShare?.url ? (
+                    <p className="break-all text-sm font-medium text-slate-800">{publicShare.url}</p>
+                  ) : (
+                    <p className="text-sm font-medium text-slate-700">
+                      Ein öffentlicher Link ist aktiv. Erstelle einen neuen Link, um ihn erneut zu kopieren.
+                    </p>
+                  )}
+                  <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                    {publicShare?.url && (
+                      <button
+                        type="button"
+                        onClick={handleCopyPublicShareLink}
+                        disabled={isLoading}
+                        className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 disabled:cursor-wait disabled:text-slate-400"
+                      >
+                        Link kopieren
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={handleDisablePublicShareLink}
+                      disabled={isLoading}
+                      className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm font-semibold text-rose-700 transition hover:bg-rose-100 disabled:cursor-wait disabled:text-rose-400 sm:col-span-1"
+                    >
+                      Link deaktivieren
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {!hasPublicShare && (
+                <button
+                  type="button"
+                  onClick={handleCreatePublicShareLink}
+                  disabled={isLoading}
+                  className="w-full rounded-lg bg-emerald-500 px-4 py-3 text-sm font-semibold text-slate-950 transition hover:bg-emerald-400 disabled:cursor-wait disabled:bg-emerald-200"
+                >
+                  Link erstellen
+                </button>
+              )}
+
+              {hasPublicShare && (
+                <button
+                  type="button"
+                  onClick={handleCreatePublicShareLink}
+                  disabled={isLoading}
+                  className="w-full rounded-lg bg-slate-950 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-wait disabled:bg-slate-400"
+                >
+                  Neuen Link erstellen
+                </button>
+              )}
+
+              {copyStatus && <p className="text-sm font-medium text-emerald-700">{copyStatus}</p>}
+              {publicShareError && <p className="text-sm font-medium text-rose-700">{publicShareError}</p>}
+            </div>
+
+            <div className="border-t border-slate-200 pt-5">
             <div>
               <h3 className="text-sm font-semibold text-slate-950">Mit Person teilen</h3>
               <p className="mt-1 text-sm text-slate-500">Die Person muss bereits registriert sein.</p>
             </div>
-            <form onSubmit={handleShare} className="space-y-3">
+            <form onSubmit={handleShare} className="mt-3 space-y-3">
               <input
                 type="email"
                 value={shareEmail}
@@ -107,6 +237,7 @@ export default function PlaceDetail({
                   </div>
                 ))
               )}
+            </div>
             </div>
           </div>
         </>

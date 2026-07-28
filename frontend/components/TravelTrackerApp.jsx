@@ -5,6 +5,7 @@ import { useCallback, useState, useEffect, useMemo } from 'react';
 import { io } from 'socket.io-client';
 import Navbar from './Navbar';
 import Sidebar from './Sidebar';
+import { getTripLabel } from './placeMetadata';
 import { authFetch } from '../lib/authFetch';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || '/api';
@@ -26,19 +27,40 @@ export default function TravelTrackerApp({ initialPlaces = [], currentUser = nul
   const [sidebarMode, setSidebarMode] = useState('list');
   const [formCoords, setFormCoords] = useState(null);
   const [activeNav, setActiveNav] = useState('meine-orte');
+  const [tripFilter, setTripFilter] = useState('');
   const [highlightPlaceId, setHighlightPlaceId] = useState(null);
   
   // ✅ NEW: Error State für User Feedback
   const [error, setError] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  const visiblePlaces = useMemo(() => {
+  const placesForActiveNav = useMemo(() => {
     if (activeNav === 'geteilt') {
       return places.filter((place) => place.sharedWithMe);
     }
 
     return places.filter((place) => place.canEdit !== false);
   }, [activeNav, places]);
+
+  const tripOptions = useMemo(() => {
+    return [...new Set(placesForActiveNav.map((place) => getTripLabel(place.tripName)))].sort((a, b) =>
+      a.localeCompare(b, 'de'),
+    );
+  }, [placesForActiveNav]);
+
+  const visiblePlaces = useMemo(() => {
+    if (!tripFilter) {
+      return placesForActiveNav;
+    }
+
+    return placesForActiveNav.filter((place) => getTripLabel(place.tripName) === tripFilter);
+  }, [placesForActiveNav, tripFilter]);
+
+  useEffect(() => {
+    if (tripFilter && !tripOptions.includes(tripFilter)) {
+      setTripFilter('');
+    }
+  }, [tripFilter, tripOptions]);
 
   // Debug bei Mount
   useEffect(() => {
@@ -355,6 +377,62 @@ export default function TravelTrackerApp({ initialPlaces = [], currentUser = nul
     }
   }, [readApiError, replacePlace]);
 
+  const handleCreatePublicShareLink = useCallback(async (place) => {
+    if (!place?.id) {
+      throw new Error('Ort nicht gefunden.');
+    }
+
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const response = await authFetch(`${API_BASE_URL}/places/${place.id}/public-share`, {
+        method: 'POST',
+      });
+
+      if (!response.ok) {
+        throw new Error(await readApiError(response));
+      }
+
+      const updatedPlace = await response.json();
+      replacePlace(updatedPlace);
+      return updatedPlace;
+    } catch (err) {
+      setError(`Fehler beim Erstellen des Share-Links: ${err.message}`);
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  }, [readApiError, replacePlace]);
+
+  const handleDisablePublicShareLink = useCallback(async (place) => {
+    if (!place?.id) {
+      throw new Error('Ort nicht gefunden.');
+    }
+
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const response = await authFetch(`${API_BASE_URL}/places/${place.id}/public-share`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        throw new Error(await readApiError(response));
+      }
+
+      const updatedPlace = await response.json();
+      replacePlace(updatedPlace);
+      return updatedPlace;
+    } catch (err) {
+      setError(`Fehler beim Deaktivieren des Share-Links: ${err.message}`);
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  }, [readApiError, replacePlace]);
+
   const handleUpdateProfile = useCallback(async ({ email, currentPassword, newPassword }) => {
     const payload = {
       email,
@@ -439,17 +517,22 @@ export default function TravelTrackerApp({ initialPlaces = [], currentUser = nul
         <Sidebar
           mode={sidebarMode}
           places={visiblePlaces}
+          tripFilter={tripFilter}
+          tripOptions={tripOptions}
           profilePlaces={places}
           currentUser={currentUserState}
           selectedPlace={selectedPlace}
           formCoords={formCoords}
           highlightPlaceId={highlightPlaceId}
           onPlaceCardClick={handlePlaceCardClick}
+          onTripFilterChange={setTripFilter}
           onSavePlace={handleSavePlace}
           onDeletePlace={handleDeletePlace}
           onEditPlace={handleEditPlace}
           onSharePlace={handleSharePlace}
           onUnsharePlace={handleUnsharePlace}
+          onCreatePublicShareLink={handleCreatePublicShareLink}
+          onDisablePublicShareLink={handleDisablePublicShareLink}
           onUpdateProfile={handleUpdateProfile}
           onClearSelectedPlace={handleClearSelectedPlace}
           onCloseForm={handleClearSelectedPlace}

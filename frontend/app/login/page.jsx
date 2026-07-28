@@ -1,12 +1,10 @@
 'use client';
 
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { isValidEmail, isValidPassword } from '../../lib/validation';
 
 export default function LoginPage() {
-  const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -54,7 +52,7 @@ export default function LoginPage() {
         document.cookie = `authToken=${encodeURIComponent(data.token)}; path=/; expires=${expiry}; max-age=${24 * 60 * 60}; SameSite=Lax${secureFlag}`;
       }
 
-      router.push('/');
+      window.location.assign('/');
     } catch (err) {
       console.error('[LoginPage] Login failed:', err);
       setError('Login fehlgeschlagen.');
@@ -66,6 +64,10 @@ export default function LoginPage() {
   return (
     <main className="flex min-h-screen items-start justify-center overflow-y-auto bg-slate-50 px-4 py-12 text-slate-900">
       <section className="w-full max-w-md rounded-[2rem] border border-slate-200 bg-white p-8 shadow-2xl shadow-slate-200/50">
+        <Link href="/" className="mb-6 inline-flex items-center gap-2 text-sm font-semibold text-slate-600 transition hover:text-slate-950">
+          <span aria-hidden="true">←</span>
+          Zur Landingpage
+        </Link>
         <div className="mb-6 space-y-3">
           <p className="text-sm uppercase tracking-[0.3em] text-slate-500">Travel Tracker</p>
           <h1 className="text-3xl font-semibold text-slate-950">Login</h1>

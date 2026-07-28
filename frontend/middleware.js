@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 
-const PUBLIC_PATHS = ['/', '/login', '/register'];
+const AUTH_REDIRECT_PATHS = ['/login', '/register'];
+const PUBLIC_PATHS = ['/', ...AUTH_REDIRECT_PATHS, '/share'];
 const BACKEND_URL = process.env.BACKEND_URL || process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001';
 
 async function validateAuthToken(token) {
@@ -23,6 +24,7 @@ export async function middleware(request) {
   const { pathname } = request.nextUrl;
   const token = request.cookies.get('authToken')?.value;
   const isPublicPath = PUBLIC_PATHS.some((path) => (path === '/' ? pathname === '/' : pathname.startsWith(path)));
+  const isAuthRedirectPath = AUTH_REDIRECT_PATHS.some((path) => pathname.startsWith(path));
 
   if (!token && !isPublicPath) {
     return NextResponse.redirect(new URL('/login', request.url));
@@ -38,7 +40,7 @@ export async function middleware(request) {
       return NextResponse.next();
     }
 
-    if (isPublicPath) {
+    if (isAuthRedirectPath) {
       return NextResponse.redirect(new URL('/', request.url));
     }
   }

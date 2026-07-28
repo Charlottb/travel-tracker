@@ -41,6 +41,18 @@ function FitPlaces({ places }) {
   return null;
 }
 
+function getAddressPart(address = {}, keys = []) {
+  return keys.map((key) => address[key]).find(Boolean);
+}
+
+function formatResultLocation(result) {
+  const address = result.address || {};
+  const city = getAddressPart(address, ['city', 'town', 'village', 'municipality', 'county', 'state']);
+  const country = address.country;
+
+  return [city, country].filter(Boolean).join(', ');
+}
+
 function AddressSearchControl({ onSelectAddress }) {
   const map = useMap();
   const containerRef = useRef(null);
@@ -90,7 +102,7 @@ function AddressSearchControl({ onSelectAddress }) {
       const params = new URLSearchParams({
         format: 'json',
         q: trimmedQuery,
-        limit: '5',
+        limit: '10',
         addressdetails: '1',
       });
       const response = await fetch(`https://nominatim.openstreetmap.org/search?${params.toString()}`, {
@@ -106,7 +118,7 @@ function AddressSearchControl({ onSelectAddress }) {
       const data = await response.json();
       setResults(Array.isArray(data) ? data : []);
       if (!Array.isArray(data) || data.length === 0) {
-        setError('Keine Adresse gefunden.');
+        setError('Keine Treffer gefunden. Probiere eine Stadt, Adresse oder Sehenswürdigkeit weltweit.');
       }
     } catch (searchError) {
       console.error('[MapView] Address search failed:', searchError);
@@ -127,7 +139,7 @@ function AddressSearchControl({ onSelectAddress }) {
           value={query}
           onChange={(event) => setQuery(event.target.value)}
           className="min-w-0 flex-1 rounded-l-full border-r border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-950 outline-none placeholder:text-slate-400"
-          placeholder="Straße, Hausnummer oder Ort suchen"
+          placeholder="Ort, Adresse oder Sehenswürdigkeit weltweit suchen"
           type="search"
         />
         <button
@@ -141,16 +153,25 @@ function AddressSearchControl({ onSelectAddress }) {
       {(results.length > 0 || error) && (
         <div className="mt-2 overflow-hidden rounded-lg bg-white shadow-xl shadow-slate-900/12 ring-1 ring-slate-200">
           {error && <p className="px-4 py-3 text-sm font-medium text-rose-700">{error}</p>}
-          {results.map((result) => (
-            <button
-              key={result.place_id}
-              type="button"
-              onClick={() => selectResult(result)}
-              className="block w-full border-b border-slate-100 px-4 py-3 text-left text-sm text-slate-700 transition last:border-b-0 hover:bg-slate-100 hover:text-slate-950"
-            >
-              <span className="line-clamp-2">{result.display_name}</span>
-            </button>
-          ))}
+          {results.map((result) => {
+            const resultLocation = formatResultLocation(result);
+
+            return (
+              <button
+                key={result.place_id}
+                type="button"
+                onClick={() => selectResult(result)}
+                className="block w-full border-b border-slate-100 px-4 py-3 text-left text-sm text-slate-700 transition last:border-b-0 hover:bg-slate-100 hover:text-slate-950"
+              >
+                <span className="line-clamp-2 font-medium text-slate-900">{result.display_name}</span>
+                {resultLocation && (
+                  <span className="mt-1 block text-xs font-semibold text-slate-500">
+                    {resultLocation}
+                  </span>
+                )}
+              </button>
+            );
+          })}
         </div>
       )}
     </div>

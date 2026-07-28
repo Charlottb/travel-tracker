@@ -25,6 +25,9 @@ model Place {
   title       String
   description String?
   category    String?
+  tripName    String?
+  status      String?
+  moodTags    String?
   lat         Float
   lng         Float
   userId      Int
