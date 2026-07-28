@@ -38,7 +38,8 @@ async function getSharedPlace(token) {
 }
 
 export default async function PublicSharePage({ params }) {
-  const place = await getSharedPlace(params.token);
+  const { token } = await params;
+  const place = await getSharedPlace(token);
 
   if (!place) {
     return (

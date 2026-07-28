@@ -27,8 +27,7 @@ export async function GET(request) {
       status: backendResponse.status,
       headers: responseHeaders,
     });
-  } catch (error) {
-    console.error('[api/auth/me] Backend request failed:', error);
+  } catch (_error) {
     return NextResponse.json(
       { error: 'Backend nicht erreichbar.' },
       { status: 502 },
