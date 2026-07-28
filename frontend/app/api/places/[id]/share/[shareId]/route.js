@@ -12,7 +12,8 @@ async function readError(response) {
 }
 
 export async function DELETE(request, { params }) {
-  const url = getBackendShareUrl(params.id, params.shareId);
+  const { id, shareId } = await params;
+  const url = getBackendShareUrl(id, shareId);
 
   try {
     const cookie = request.headers.get('cookie');
@@ -32,9 +33,9 @@ export async function DELETE(request, { params }) {
 
     const place = await response.json();
     return NextResponse.json(place, { status: response.status });
-  } catch (error) {
+  } catch (_error) {
     return NextResponse.json(
-      { error: 'Backend nicht erreichbar', details: error.message },
+      { error: 'Backend nicht erreichbar' },
       { status: 502 },
     );
   }

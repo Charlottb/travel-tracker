@@ -12,7 +12,8 @@ async function readError(response) {
 }
 
 export async function GET(_request, { params }) {
-  const url = getBackendPublicShareUrl(params.token);
+  const { token } = await params;
+  const url = getBackendPublicShareUrl(token);
 
   try {
     const response = await fetch(url, {
@@ -33,9 +34,9 @@ export async function GET(_request, { params }) {
 
     const place = await response.json();
     return NextResponse.json(place, { status: response.status });
-  } catch (error) {
+  } catch (_error) {
     return NextResponse.json(
-      { error: 'Backend nicht erreichbar', details: error.message },
+      { error: 'Backend nicht erreichbar' },
       { status: 502 },
     );
   }

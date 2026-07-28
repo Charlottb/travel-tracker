@@ -21,7 +21,8 @@ function getCookieHeaders(request, headers = {}) {
 }
 
 export async function POST(request, { params }) {
-  const url = getBackendPublicShareUrl(params.id);
+  const { id } = await params;
+  const url = getBackendPublicShareUrl(id);
 
   try {
     const response = await fetch(url, {
@@ -40,16 +41,17 @@ export async function POST(request, { params }) {
 
     const place = await response.json();
     return NextResponse.json(place, { status: response.status });
-  } catch (error) {
+  } catch (_error) {
     return NextResponse.json(
-      { error: 'Backend nicht erreichbar', details: error.message },
+      { error: 'Backend nicht erreichbar' },
       { status: 502 },
     );
   }
 }
 
 export async function DELETE(request, { params }) {
-  const url = getBackendPublicShareUrl(params.id);
+  const { id } = await params;
+  const url = getBackendPublicShareUrl(id);
 
   try {
     const response = await fetch(url, {
@@ -68,9 +70,9 @@ export async function DELETE(request, { params }) {
 
     const place = await response.json();
     return NextResponse.json(place, { status: response.status });
-  } catch (error) {
+  } catch (_error) {
     return NextResponse.json(
-      { error: 'Backend nicht erreichbar', details: error.message },
+      { error: 'Backend nicht erreichbar' },
       { status: 502 },
     );
   }

@@ -59,8 +59,7 @@ async function proxyAuthRequest(request, { action, method }) {
       status: backendResponse.status,
       headers: responseHeaders,
     });
-  } catch (error) {
-    console.error(`[api/auth/${action}] Backend request failed:`, error);
+  } catch (_error) {
     return Response.json(
       { error: 'Backend nicht erreichbar.' },
       { status: 502 },
@@ -69,7 +68,7 @@ async function proxyAuthRequest(request, { action, method }) {
 }
 
 export async function POST(request, { params }) {
-  const { action } = params;
+  const { action } = await params;
 
   if (!ALLOWED_POST_ACTIONS.has(action)) {
     return Response.json({ error: 'Unbekannte Auth-Aktion.' }, { status: 404 });
@@ -79,7 +78,7 @@ export async function POST(request, { params }) {
 }
 
 export async function PATCH(request, { params }) {
-  const { action } = params;
+  const { action } = await params;
 
   if (!ALLOWED_PATCH_ACTIONS.has(action)) {
     return Response.json({ error: 'Unbekannte Auth-Aktion.' }, { status: 404 });
