@@ -130,28 +130,28 @@ function AddressSearchControl({ onSelectAddress }) {
   };
 
   return (
-    <div ref={containerRef} className="absolute left-4 right-4 top-4 z-[500] max-w-xl lg:right-auto lg:w-[28rem]">
+    <div ref={containerRef} className="absolute left-3 right-3 top-3 z-[500] max-w-lg sm:left-4 sm:right-4 sm:top-4 lg:right-auto lg:w-[25rem]">
       <form
         onSubmit={handleSearch}
-        className="relative flex overflow-hidden rounded-full bg-white shadow-xl shadow-slate-900/12 ring-1 ring-slate-200"
+        className="relative flex overflow-hidden rounded-full bg-white/92 shadow-md shadow-slate-900/10 ring-1 ring-slate-200 backdrop-blur"
       >
         <input
           value={query}
           onChange={(event) => setQuery(event.target.value)}
-          className="min-w-0 flex-1 rounded-l-full border-r border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-950 outline-none placeholder:text-slate-400"
-          placeholder="Ort, Adresse oder Sehenswürdigkeit weltweit suchen"
+          className="min-w-0 flex-1 rounded-l-full border-r border-slate-100 bg-white/90 px-4 py-2.5 text-sm font-semibold text-slate-950 outline-none placeholder:text-slate-400"
+          placeholder="Weltweit suchen"
           type="search"
         />
         <button
           type="submit"
           disabled={isSearching}
-          className="shrink-0 rounded-r-full bg-slate-950 px-6 py-3 text-sm font-semibold text-white shadow-xl shadow-slate-950/20 transition hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-900/30 disabled:cursor-wait disabled:bg-slate-400 disabled:shadow-none"
+          className="shrink-0 rounded-r-full bg-emerald-500 px-4 py-2.5 text-sm font-bold text-slate-950 shadow-md shadow-emerald-200 transition hover:bg-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-300 disabled:cursor-wait disabled:bg-emerald-200 disabled:shadow-none sm:px-5"
         >
           {isSearching ? '...' : 'Suchen'}
         </button>
       </form>
       {(results.length > 0 || error) && (
-        <div className="mt-2 overflow-hidden rounded-lg bg-white shadow-xl shadow-slate-900/12 ring-1 ring-slate-200">
+        <div className="mt-2 overflow-hidden rounded-2xl bg-white/95 shadow-xl shadow-slate-900/10 ring-1 ring-slate-200 backdrop-blur">
           {error && <p className="px-4 py-3 text-sm font-medium text-rose-700">{error}</p>}
           {results.map((result) => {
             const resultLocation = formatResultLocation(result);
@@ -161,7 +161,7 @@ function AddressSearchControl({ onSelectAddress }) {
                 key={result.place_id}
                 type="button"
                 onClick={() => selectResult(result)}
-                className="block w-full border-b border-slate-100 px-4 py-3 text-left text-sm text-slate-700 transition last:border-b-0 hover:bg-slate-100 hover:text-slate-950"
+                className="block w-full border-b border-slate-100 px-4 py-3 text-left text-sm text-slate-700 transition last:border-b-0 hover:bg-emerald-50 hover:text-slate-950"
               >
                 <span className="line-clamp-2 font-medium text-slate-900">{result.display_name}</span>
                 {resultLocation && (
@@ -208,7 +208,7 @@ export default function MapView({
   );
 
   return (
-    <div className="relative h-full w-full overflow-hidden bg-slate-100">
+    <div className="relative h-full w-full overflow-hidden bg-[#f3f5f2]">
       <MapContainer
         center={[51.1657, 10.4515]}
         zoom={6}
@@ -217,8 +217,9 @@ export default function MapView({
         zoomControl={false}
       >
         <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+          className="travel-map-tiles"
+          url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
         />
         <ZoomControl position="bottomright" />
         <ScaleControl position="bottomleft" imperial={false} />
@@ -237,7 +238,7 @@ export default function MapView({
               direction="top"
               offset={[0, -22]}
               opacity={0.95}
-              className="rounded-xl border border-slate-200 bg-white/95 px-2 py-1 text-[11px] font-semibold text-slate-950 shadow-lg shadow-slate-900/10"
+              className="rounded-xl border border-slate-200 bg-white/95 px-2 py-1 text-[11px] font-bold text-slate-950 shadow-lg shadow-slate-900/10"
             >
               {place.title}
             </Tooltip>
@@ -263,10 +264,10 @@ export default function MapView({
           />
         )}
       </MapContainer>
-      <div className="pointer-events-none absolute left-4 top-[5.25rem] z-[400] rounded-lg bg-white/95 px-4 py-2 text-xs font-semibold text-slate-700 shadow-lg shadow-slate-900/10 ring-1 ring-slate-200 lg:top-20">
+      <div className="pointer-events-none absolute left-4 top-[5.25rem] z-[400] rounded-full bg-white/95 px-4 py-2 text-xs font-bold text-slate-700 shadow-lg shadow-slate-900/10 ring-1 ring-slate-200 lg:top-20">
         Klicke auf die Karte, um einen Ort hinzuzufügen
       </div>
-      <div className="pointer-events-none absolute bottom-4 left-4 z-[400] rounded-lg bg-slate-950/90 px-3 py-2 text-xs font-semibold text-white shadow-lg shadow-slate-900/20">
+      <div className="pointer-events-none absolute bottom-4 left-4 z-[400] rounded-full bg-white/95 px-3 py-2 text-xs font-bold text-emerald-800 shadow-lg shadow-slate-900/10 ring-1 ring-slate-200">
         {places.length} {places.length === 1 ? 'Ort' : 'Orte'}
       </div>
     </div>

@@ -42,5 +42,5 @@ export function parseMoodTags(moodTags) {
 }
 
 export function getTripLabel(tripName) {
-  return tripName?.trim() || 'Ohne Trip';
+  return tripName?.trim() || 'Noch keiner Reise zugeordnet';
 }

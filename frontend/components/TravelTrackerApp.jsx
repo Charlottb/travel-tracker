@@ -482,22 +482,22 @@ export default function TravelTrackerApp({ initialPlaces = [], currentUser = nul
   }, []);
 
   return (
-    <div className="flex min-h-screen flex-col overflow-hidden border border-slate-200 bg-white shadow-2xl shadow-slate-900/10 lg:min-h-[calc(100vh-3rem)] lg:rounded-2xl lg:flex-row">
+    <div className="flex min-h-screen flex-col overflow-hidden border border-slate-200 bg-white/90 shadow-2xl shadow-slate-900/10 backdrop-blur lg:min-h-[calc(100vh-3rem)] lg:rounded-[1.75rem] lg:flex-row">
       {/* ✅ Error Toast */}
       {error && (
-        <div className="fixed right-4 top-4 z-50 max-w-sm rounded-lg border border-red-200 bg-white p-4 shadow-xl shadow-red-950/10">
+        <div className="fixed right-4 top-4 z-50 max-w-sm rounded-2xl border border-red-200 bg-white p-4 shadow-xl shadow-red-950/10">
           <p className="font-semibold text-red-900">Fehler</p>
           <p className="mt-1 text-sm text-red-800">{error}</p>
           <button 
             onClick={() => setError(null)}
-            className="mt-3 rounded-md bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-700 transition hover:bg-red-100"
+            className="mt-3 rounded-full bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-700 transition hover:bg-red-100"
           >
             Schließen
           </button>
         </div>
       )}
 
-      <div className="flex min-h-[340px] min-w-0 flex-1 overflow-hidden lg:h-auto">
+      <div className="flex min-h-[340px] min-w-0 overflow-hidden lg:h-auto lg:basis-[59%] lg:flex-none">
         <MapView
           places={visiblePlaces}
           selectedCoords={formCoords}
@@ -505,7 +505,7 @@ export default function TravelTrackerApp({ initialPlaces = [], currentUser = nul
           onMarkerClick={handleMarkerClick}
         />
       </div>
-      <aside className="flex w-full min-w-0 flex-col border-t border-slate-200 bg-slate-50/80 lg:w-[440px] lg:min-h-0 lg:border-l lg:border-t-0">
+      <aside className="flex w-full min-w-0 flex-col border-t border-slate-200 bg-[#fbfaf7]/95 lg:min-h-0 lg:basis-[41%] lg:border-l lg:border-t-0">
         <Navbar
           activeNav={activeNav}
           setActiveNav={setActiveNav}
