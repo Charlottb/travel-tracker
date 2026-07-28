@@ -1,8 +1,7 @@
 'use client';
 
 import dynamic from 'next/dynamic';
-import { useCallback, useState, useEffect, useMemo } from 'react';
-import { io } from 'socket.io-client';
+import { useCallback, useState, useEffect, useMemo, useRef } from 'react';
 import Navbar from './Navbar';
 import Sidebar from './Sidebar';
 import { getTripLabel } from './placeMetadata';
@@ -15,12 +14,8 @@ const MapView = dynamic(() => import('./MapView'), {
   loading: () => <div className="h-full w-full animate-pulse bg-slate-100" />,
 });
 
-// Debug: Zeige URL wenn geladen
-if (typeof window !== 'undefined') {
-  console.log('[TravelTrackerApp] Client-side API URL:', API_BASE_URL);
-}
-
 export default function TravelTrackerApp({ initialPlaces = [], currentUser = null }) {
+  const socketRef = useRef(null);
   const [places, setPlaces] = useState(initialPlaces);
   const [currentUserState, setCurrentUserState] = useState(currentUser);
   const [selectedPlace, setSelectedPlace] = useState(null);
@@ -29,6 +24,7 @@ export default function TravelTrackerApp({ initialPlaces = [], currentUser = nul
   const [activeNav, setActiveNav] = useState('meine-orte');
   const [tripFilter, setTripFilter] = useState('');
   const [highlightPlaceId, setHighlightPlaceId] = useState(null);
+  const [shouldLoadMap, setShouldLoadMap] = useState(false);
   
   // ✅ NEW: Error State für User Feedback
   const [error, setError] = useState(null);
@@ -62,10 +58,17 @@ export default function TravelTrackerApp({ initialPlaces = [], currentUser = nul
     }
   }, [tripFilter, tripOptions]);
 
-  // Debug bei Mount
   useEffect(() => {
-    console.log('[TravelTrackerApp] Mounted with', initialPlaces.length, 'initial places');
-  }, [initialPlaces.length]);
+    const loadMap = () => setShouldLoadMap(true);
+
+    if ('requestIdleCallback' in window) {
+      const idleId = window.requestIdleCallback(loadMap, { timeout: 1200 });
+      return () => window.cancelIdleCallback(idleId);
+    }
+
+    const timeoutId = window.setTimeout(loadMap, 0);
+    return () => window.clearTimeout(timeoutId);
+  }, []);
 
   const refreshPlaces = useCallback(async () => {
     try {
@@ -103,42 +106,62 @@ export default function TravelTrackerApp({ initialPlaces = [], currentUser = nul
     setSelectedPlace((currentPlace) => (currentPlace?.id === updatedPlace.id ? updatedPlace : currentPlace));
   }, []);
 
-  const socket = useMemo(() => {
-    if (typeof window === 'undefined') {
-      return null;
-    }
-
-    const socketInstance = io(BACKEND_URL, {
-      path: '/socket.io',
-      transports: ['websocket'],
-      withCredentials: true,
-    });
-
-    socketInstance.on('connect', () => {
-      console.log('[TravelTrackerApp] socket.io connected', socketInstance.id);
-    });
-
-    socketInstance.on('disconnect', (reason) => {
-      console.log('[TravelTrackerApp] socket.io disconnected', reason);
-    });
-
-    socketInstance.on('place-created', async () => {
-      console.log('[TravelTrackerApp] Received place-created event from socket.io');
-      await refreshPlaces();
-    });
-
-    return socketInstance;
-  }, [refreshPlaces]);
-
   useEffect(() => {
-    if (!socket) {
-      return undefined;
+    let isMounted = true;
+    let socketInstance = null;
+    let idleId = null;
+    let timeoutId = null;
+
+    const connectSocket = async () => {
+      try {
+        const { io } = await import('socket.io-client');
+
+        if (!isMounted) {
+          return;
+        }
+
+        socketInstance = io(BACKEND_URL, {
+          path: '/socket.io',
+          transports: ['websocket'],
+          withCredentials: true,
+        });
+
+        socketRef.current = socketInstance;
+
+        socketInstance.on('place-created', async () => {
+          await refreshPlaces();
+        });
+      } catch (socketError) {
+        console.warn('[TravelTrackerApp] socket.io setup failed', socketError);
+      }
+    };
+
+    if ('requestIdleCallback' in window) {
+      idleId = window.requestIdleCallback(connectSocket, { timeout: 2500 });
+    } else {
+      timeoutId = window.setTimeout(connectSocket, 0);
     }
 
     return () => {
-      socket.disconnect();
+      isMounted = false;
+
+      if (idleId) {
+        window.cancelIdleCallback(idleId);
+      }
+
+      if (timeoutId) {
+        window.clearTimeout(timeoutId);
+      }
+
+      if (socketInstance) {
+        socketInstance.disconnect();
+      }
+
+      if (socketRef.current === socketInstance) {
+        socketRef.current = null;
+      }
     };
-  }, [socket]);
+  }, [refreshPlaces]);
 
   useEffect(() => {
     if (typeof window === 'undefined') {
@@ -257,8 +280,9 @@ export default function TravelTrackerApp({ initialPlaces = [], currentUser = nul
       setFormCoords(null);
       setSelectedPlace(null);
 
-      if (!isEditing && socket && socket.connected) {
-        socket.emit('new-place', savedPlace);
+      const socketInstance = socketRef.current;
+      if (!isEditing && socketInstance?.connected) {
+        socketInstance.emit('new-place', savedPlace);
       }
     } catch (err) {
       console.error('[TravelTrackerApp] ❌ Error saving place:', {
@@ -270,7 +294,7 @@ export default function TravelTrackerApp({ initialPlaces = [], currentUser = nul
     } finally {
       setIsLoading(false);
     }
-  }, [isLoading, socket]);
+  }, [isLoading]);
 
   const handleDeletePlace = useCallback(async (placeToDelete) => {
     if (!placeToDelete?.id) {
@@ -498,12 +522,16 @@ export default function TravelTrackerApp({ initialPlaces = [], currentUser = nul
       )}
 
       <div className="flex min-h-[340px] min-w-0 overflow-hidden lg:h-auto lg:basis-[59%] lg:flex-none">
-        <MapView
-          places={visiblePlaces}
-          selectedCoords={formCoords}
-          onMapClick={handleMapClick}
-          onMarkerClick={handleMarkerClick}
-        />
+        {shouldLoadMap ? (
+          <MapView
+            places={visiblePlaces}
+            selectedCoords={formCoords}
+            onMapClick={handleMapClick}
+            onMarkerClick={handleMarkerClick}
+          />
+        ) : (
+          <div className="h-full w-full animate-pulse bg-slate-100" />
+        )}
       </div>
       <aside className="flex w-full min-w-0 flex-col border-t border-slate-200 bg-[#fbfaf7]/95 lg:min-h-0 lg:basis-[41%] lg:border-l lg:border-t-0">
         <Navbar

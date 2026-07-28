@@ -1,5 +1,3 @@
-'use client';
-
 export const CATEGORY_OPTIONS = [
   { value: 'Restaurant', label: 'Restaurant', icon: 'restaurant' },
   { value: 'Hotel', label: 'Hotel', icon: 'hotel' },
