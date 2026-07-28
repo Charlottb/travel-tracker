@@ -30,8 +30,8 @@ export default function PlacesList({ places = [], onPlaceClick = () => {}, highl
           {tripGroups.map(([tripName, tripPlaces]) => (
             <section key={tripName} className="space-y-2.5">
               <div className="flex items-center justify-between gap-3 px-1">
-                <h3 className="truncate text-xs font-medium text-slate-500">{tripName}</h3>
-                <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600">{tripPlaces.length}</span>
+                <h3 className="truncate text-sm font-medium text-slate-600">{tripName}</h3>
+                <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-600">{tripPlaces.length}</span>
               </div>
               {tripPlaces.map((place) => (
                 <PlaceCard
@@ -44,7 +44,7 @@ export default function PlacesList({ places = [], onPlaceClick = () => {}, highl
               ))}
             </section>
           ))}
-          <p className="flex items-center gap-2 px-1 pt-2 text-xs font-normal leading-5 text-slate-400">
+          <p className="flex items-center gap-2 px-1 pt-2 text-sm font-normal leading-6 text-slate-500">
             <span className="h-1.5 w-1.5 rounded-full bg-emerald-300" aria-hidden="true" />
             Deine Sammlung wächst mit jedem Ort, den du festhältst.
           </p>

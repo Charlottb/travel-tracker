@@ -38,14 +38,14 @@ export default function Navbar({
               </svg>
             </span>
             <div className="min-w-0">
-              <p className="text-xs font-medium text-slate-500">Travel Tracker</p>
-              <h1 className="mt-0.5 text-2xl font-semibold tracking-tight text-slate-950">Reiseorte</h1>
+              <p className="text-sm font-medium text-slate-600">Travel Tracker</p>
+              <h1 className="mt-0.5 text-[1.65rem] font-semibold leading-8 tracking-tight text-slate-950">Reiseorte</h1>
             </div>
           </div>
           <button
             type="button"
             onClick={onAddPlace}
-            className="shrink-0 rounded-full bg-emerald-500 px-4 py-2.5 text-sm font-semibold text-slate-950 shadow-lg shadow-emerald-200 transition hover:bg-emerald-400"
+            className="shrink-0 rounded-full bg-emerald-500 px-4 py-2.5 text-[15px] font-semibold text-slate-950 shadow-lg shadow-emerald-200 transition hover:bg-emerald-400"
           >
             + Neuer Ort
           </button>
@@ -57,7 +57,7 @@ export default function Navbar({
                 key={tab}
                 type="button"
                 onClick={() => setActiveNav(tab)}
-                className={`rounded-full px-4 py-1.5 text-sm font-medium transition ${
+                className={`rounded-full px-4 py-2 text-[15px] font-medium transition ${
                   activeNav === tab
                     ? 'bg-white text-slate-950 shadow-sm shadow-slate-900/5'
                     : 'text-slate-600 hover:bg-white/70 hover:text-slate-950'
@@ -74,13 +74,13 @@ export default function Navbar({
                   {initials}
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-[13px] font-medium text-slate-900">{displayName}</p>
-                  <p className="truncate text-[11px] text-slate-500">{email}</p>
+                  <p className="truncate text-sm font-medium text-slate-900">{displayName}</p>
+                  <p className="truncate text-xs text-slate-500">{email}</p>
                 </div>
                 <button
                   type="button"
                   onClick={onOpenProfile}
-                  className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-medium transition ${
+                  className={`shrink-0 rounded-full px-3 py-1.5 text-[13px] font-medium transition ${
                     isProfileOpen
                       ? 'bg-emerald-50 text-emerald-800 ring-1 ring-emerald-100'
                       : 'text-slate-600 hover:bg-emerald-50 hover:text-emerald-800'
@@ -91,7 +91,7 @@ export default function Navbar({
                 <button
                   type="button"
                   onClick={handleLogout}
-                  className="shrink-0 rounded-full px-3 py-1.5 text-xs font-medium text-slate-500 transition hover:bg-rose-50 hover:text-rose-700"
+                  className="shrink-0 rounded-full px-3 py-1.5 text-[13px] font-medium text-slate-500 transition hover:bg-rose-50 hover:text-rose-700"
                 >
                   Logout
                 </button>
