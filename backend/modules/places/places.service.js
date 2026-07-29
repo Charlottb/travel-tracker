@@ -286,7 +286,7 @@ async function createPlace(placeData, userId) {
 
   const recipient = await authService.getUserNotificationRecipient(userId);
 
-  broadcastPlaceCreated(newPlace).catch(() => {
+  await broadcastPlaceCreated(newPlace).catch(() => {
     console.error('[Places] SSE place-created broadcast failed.');
   });
 

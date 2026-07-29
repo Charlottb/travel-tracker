@@ -90,6 +90,7 @@ export default function ProfilePanel({
   const sharedWithMe = places.filter((place) => place.sharedWithMe);
   const sharedByMeCount = ownPlaces.reduce((count, place) => count + (Array.isArray(place.shares) ? place.shares.length : 0), 0);
   const initials = (user?.name || user?.email || '?').trim().charAt(0).toUpperCase();
+  const [name, setName] = useState(user?.name || '');
   const [email, setEmail] = useState(user?.email || '');
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -97,8 +98,9 @@ export default function ProfilePanel({
   const [profileError, setProfileError] = useState('');
 
   useEffect(() => {
+    setName(user?.name || '');
     setEmail(user?.email || '');
-  }, [user?.email]);
+  }, [user?.email, user?.name]);
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -106,8 +108,14 @@ export default function ProfilePanel({
     setProfileError('');
 
     const trimmedEmail = email.trim();
+    const trimmedName = name.trim();
     const trimmedCurrentPassword = currentPassword;
     const trimmedNewPassword = newPassword;
+
+    if (!trimmedName) {
+      setProfileError('Bitte gib einen Namen ein.');
+      return;
+    }
 
     if (trimmedNewPassword && !trimmedCurrentPassword) {
       setProfileError('Bitte gib dein aktuelles Passwort ein.');
@@ -116,6 +124,7 @@ export default function ProfilePanel({
 
     try {
       await onUpdateProfile({
+        name: trimmedName,
         email: trimmedEmail,
         currentPassword: trimmedCurrentPassword,
         newPassword: trimmedNewPassword,
@@ -156,6 +165,18 @@ export default function ProfilePanel({
       <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
         <h3 className="text-sm font-semibold text-slate-950">Login-Daten ändern</h3>
         <form onSubmit={handleSubmit} className="mt-4 space-y-4">
+          <label className="block">
+            <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Name</span>
+            <input
+              type="text"
+              data-cy="profile-name"
+              value={name}
+              onChange={(event) => setName(event.target.value)}
+              className="mt-2 w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-950 outline-none transition focus:border-slate-400 focus:ring-4 focus:ring-slate-200"
+              required
+            />
+          </label>
+
           <label className="block">
             <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">E-Mail</span>
             <input

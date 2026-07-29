@@ -15,10 +15,14 @@ export async function readError(response) {
 
 export function getBackendHeaders(request, headers = {}) {
   const cookie = request.headers.get('cookie');
+  const origin = request.headers.get('origin');
+  const referer = request.headers.get('referer');
 
   return {
     ...headers,
     ...(cookie ? { cookie } : {}),
+    ...(origin ? { origin } : {}),
+    ...(referer ? { referer } : {}),
   };
 }
 
@@ -38,16 +42,24 @@ function getRequestHost(request) {
 
 export function rejectInvalidMutationOrigin(request) {
   const origin = request.headers.get('origin');
+  const referer = request.headers.get('referer');
+  const source = origin || referer;
+  const isProduction = process.env.NODE_ENV === 'production';
 
-  if (!origin) {
+  // Local tests and server-to-server development calls often omit both headers.
+  if (!source && !isProduction) {
     return null;
   }
 
+  if (!source) {
+    return NextResponse.json({ error: 'Ungueltige Anfrage.' }, { status: 403 });
+  }
+
   try {
-    const originHost = new URL(origin).host;
+    const sourceHost = new URL(source).host;
     const requestHost = getRequestHost(request);
 
-    if (requestHost && originHost === requestHost) {
+    if (requestHost && sourceHost === requestHost) {
       return null;
     }
   } catch (_error) {

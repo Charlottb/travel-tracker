@@ -4,6 +4,7 @@ import Sidebar from "./Sidebar";
 import Navbar from "./Navbar";
 import { authFetch } from "../lib/authFetch";
 
+// Legacy Vite prototype kept for reference. The submitted app runs through Next.js in frontend/app.
 function App() {
   // Main state
   const [places, setPlaces] = useState([]);

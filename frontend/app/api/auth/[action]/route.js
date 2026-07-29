@@ -9,12 +9,20 @@ async function proxyAuthRequest(request, { action, method }) {
     const headers = { Accept: 'application/json' };
     const cookie = request.headers.get('cookie');
     const contentType = request.headers.get('content-type');
+    const origin = request.headers.get('origin');
+    const referer = request.headers.get('referer');
 
     if (cookie) {
       headers.cookie = cookie;
     }
     if (contentType) {
       headers['Content-Type'] = contentType;
+    }
+    if (origin) {
+      headers.origin = origin;
+    }
+    if (referer) {
+      headers.referer = referer;
     }
 
     const body = action === 'logout' ? undefined : await request.text();

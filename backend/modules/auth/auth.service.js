@@ -11,11 +11,19 @@ const dummyPasswordHashPromise = process.env.DUMMY_PASSWORD_HASH
   : bcrypt.hash(crypto.randomBytes(32).toString('hex'), 12);
 
 function getJwtSecret() {
-  if (!process.env.JWT_SECRET) {
+  const secret = process.env.JWT_SECRET;
+
+  if (!secret) {
     throw new Error('JWT_SECRET is missing in .env');
   }
 
-  return process.env.JWT_SECRET;
+  if (process.env.NODE_ENV === 'production') {
+    if (secret === 'dev-secret-change-me' || Buffer.byteLength(secret, 'utf8') < 32) {
+      throw new Error('JWT_SECRET is insecure for production.');
+    }
+  }
+
+  return secret;
 }
 
 function getAuthCookieOptions() {
@@ -153,9 +161,10 @@ async function getUserProfile(userId) {
   });
 }
 
-async function updateUserProfile(userId, { email, currentPassword, newPassword }) {
+async function updateUserProfile(userId, { email, name, currentPassword, newPassword }) {
   const updates = {};
   const normalizedEmail = typeof email === 'string' ? normalizeEmail(email) : '';
+  const trimmedName = typeof name === 'string' ? name.trim() : null;
   const isPasswordChanging = typeof newPassword === 'string' && newPassword.length > 0;
   const currentUser = await prisma.user.findUnique({
     where: { id: userId },
@@ -176,6 +185,18 @@ async function updateUserProfile(userId, { email, currentPassword, newPassword }
 
   const isEmailChanging = Boolean(normalizedEmail && normalizedEmail !== currentUser.email);
   const requiresCurrentPassword = isEmailChanging || isPasswordChanging;
+
+  if (typeof name === 'string') {
+    if (!trimmedName) {
+      const error = new Error('Der Name darf nicht leer sein.');
+      error.name = 'ValidationError';
+      throw error;
+    }
+
+    if (trimmedName !== currentUser.name) {
+      updates.name = trimmedName;
+    }
+  }
 
   if (requiresCurrentPassword) {
     if (typeof currentPassword !== 'string' || currentPassword.length === 0) {

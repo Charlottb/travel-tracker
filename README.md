@@ -91,10 +91,10 @@ Die Cypress-E2E-Tests liegen unter `frontend/cypress/e2e/auth.cy.js` und decken 
 Auf dem lokalen Mac konnte Cypress wegen eines defekten/inkompatiblen Cypress-Binary-Caches nicht final gestartet werden (`bad option: --smoke-test`). `npx cypress install --force` wurde ausgeführt, der Fehler blieb bestehen.
 
 Backend-Tests und Coverage laufen erfolgreich:
-- Statements: 85.55%
-- Branches: 83.87%
+- Statements: 85.66%
+- Branches: 82.52%
 - Functions: 91.66%
-- Lines: 85.44%
+- Lines: 85.55%
 
 Wenn am Prisma-Schema gearbeitet wird, kann eine neue Entwicklungs-Migration im Backend erzeugt werden:
 

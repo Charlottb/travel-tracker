@@ -5,11 +5,19 @@ const AUTH_COOKIE_NAME = 'authToken';
 const UNAUTHORIZED_MESSAGE = 'Nicht authentifiziert.';
 
 function getJwtSecret() {
-  if (!process.env.JWT_SECRET) {
+  const secret = process.env.JWT_SECRET;
+
+  if (!secret) {
     throw new Error('JWT_SECRET is missing in .env');
   }
 
-  return process.env.JWT_SECRET;
+  if (process.env.NODE_ENV === 'production') {
+    if (secret === 'dev-secret-change-me' || Buffer.byteLength(secret, 'utf8') < 32) {
+      throw new Error('JWT_SECRET is insecure for production.');
+    }
+  }
+
+  return secret;
 }
 
 async function getAuthenticatedUserFromToken(token) {

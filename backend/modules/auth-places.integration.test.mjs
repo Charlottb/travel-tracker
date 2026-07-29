@@ -1,3 +1,4 @@
+import crypto from 'node:crypto';
 import { existsSync, readdirSync, readFileSync, rmSync } from 'node:fs';
 import { resolve } from 'node:path';
 import bcrypt from 'bcrypt';
@@ -7,12 +8,17 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 const testDbFile = `test-${process.pid}.db`;
 const testDbPath = resolve(process.cwd(), testDbFile);
 const testDbUrl = `file:./${testDbFile}`;
-const password = 'ValidPass123!';
+const TEST_PASSWORD = process.env.TEST_PASSWORD || 'ValidPass123!';
+const WRONG_TEST_PASSWORD = 'DefinitelyWrong123!';
+const UPDATED_TEST_PASSWORD = 'NewValidPass123!';
+const INVALID_TEST_TOKEN = 'not-a-jwt';
+const TEST_JWT_SECRET = 'vitest-secret';
 
 let prisma;
 let authService;
 let placesService;
 let authenticate;
+let sse;
 
 function createTestDatabase() {
   const db = new Database(testDbPath);
@@ -30,7 +36,7 @@ function createTestDatabase() {
 }
 
 function uniqueEmail(prefix) {
-  return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2)}@example.com`;
+  return `${prefix}-${Date.now()}-${crypto.randomBytes(6).toString('hex')}@example.com`;
 }
 
 async function createUser(prefix = 'user') {
@@ -40,7 +46,7 @@ async function createUser(prefix = 'user') {
     data: {
       email,
       name: prefix,
-      passwordHash: await bcrypt.hash(password, 4),
+      passwordHash: await bcrypt.hash(TEST_PASSWORD, 4),
     },
     select: {
       id: true,
@@ -51,7 +57,7 @@ async function createUser(prefix = 'user') {
     },
   });
 
-  return { ...user, password };
+  return { ...user, password: TEST_PASSWORD };
 }
 
 async function createPlaceForUser(userId, overrides = {}) {
@@ -83,10 +89,21 @@ function createJsonResponse() {
   };
 }
 
+function createSseResponse() {
+  const writes = [];
+
+  return {
+    writes,
+    write(chunk) {
+      writes.push(chunk);
+    },
+  };
+}
+
 beforeAll(async () => {
   process.env.NODE_ENV = 'test';
   process.env.DATABASE_URL = testDbUrl;
-  process.env.JWT_SECRET = 'vitest-secret';
+  process.env.JWT_SECRET = TEST_JWT_SECRET;
   process.env.FRONTEND_URL = 'http://localhost:3000';
   delete process.env.RESEND_API_KEY;
 
@@ -100,6 +117,7 @@ beforeAll(async () => {
   authService = (await import('./auth/auth.service.js')).default;
   placesService = (await import('./places/places.service.js')).default;
   authenticate = (await import('../middleware/authenticate.js')).default;
+  sse = (await import('../lib/sse.js')).default;
 });
 
 beforeEach(async () => {
@@ -117,10 +135,34 @@ afterAll(async () => {
 });
 
 describe('auth edge cases', () => {
+  it('rejects insecure JWT secrets in production only', async () => {
+    const originalNodeEnv = process.env.NODE_ENV;
+    const originalJwtSecret = process.env.JWT_SECRET;
+
+    try {
+      process.env.NODE_ENV = 'production';
+      process.env.JWT_SECRET = 'dev-secret-change-me';
+      expect(() => authService.createAuthToken({ id: 1, email: 'a@example.com', tokenVersion: 0 })).toThrow(
+        'JWT_SECRET is insecure for production.',
+      );
+
+      process.env.JWT_SECRET = 'x'.repeat(31);
+      expect(() => authService.createAuthToken({ id: 1, email: 'a@example.com', tokenVersion: 0 })).toThrow(
+        'JWT_SECRET is insecure for production.',
+      );
+
+      process.env.JWT_SECRET = 'x'.repeat(32);
+      expect(() => authService.createAuthToken({ id: 1, email: 'a@example.com', tokenVersion: 0 })).not.toThrow();
+    } finally {
+      process.env.NODE_ENV = originalNodeEnv;
+      process.env.JWT_SECRET = originalJwtSecret;
+    }
+  });
+
   it('registers a valid user with normalized email and rejects duplicates', async () => {
     const registered = await authService.registerUser({
       email: '  Fresh.User@Example.COM ',
-      password,
+      password: TEST_PASSWORD,
       name: 'Fresh User',
     });
 
@@ -132,7 +174,7 @@ describe('auth edge cases', () => {
     await expect(
       authService.registerUser({
         email: 'fresh.user@example.com',
-        password,
+        password: TEST_PASSWORD,
         name: 'Duplicate',
       }),
     ).rejects.toMatchObject({
@@ -145,7 +187,7 @@ describe('auth edge cases', () => {
     await expect(
       authService.registerUser({
         email: 'not-an-email',
-        password,
+        password: TEST_PASSWORD,
         name: 'Invalid',
       }),
     ).rejects.toMatchObject({
@@ -160,7 +202,7 @@ describe('auth edge cases', () => {
     await expect(
       authService.loginUser({
         email: user.email,
-        password: 'DefinitelyWrong123!',
+        password: WRONG_TEST_PASSWORD,
       }),
     ).rejects.toMatchObject({
       name: 'ValidationError',
@@ -172,7 +214,7 @@ describe('auth edge cases', () => {
     await expect(
       authService.loginUser({
         email: uniqueEmail('unknown'),
-        password,
+        password: TEST_PASSWORD,
       }),
     ).rejects.toMatchObject({
       name: 'ValidationError',
@@ -207,7 +249,7 @@ describe('auth edge cases', () => {
     expect(nextCalled).toBe(true);
     expect(req.user).toMatchObject({ userId: user.id, email: user.email });
 
-    const invalidReq = { cookies: { authToken: 'not-a-jwt' } };
+    const invalidReq = { cookies: { authToken: INVALID_TEST_TOKEN } };
     const invalidRes = createJsonResponse();
     await authenticate(invalidReq, invalidRes, () => {
       throw new Error('next should not be called');
@@ -222,14 +264,14 @@ describe('auth edge cases', () => {
 
   it('invalidates old tokens when tokenVersion changes', async () => {
     const user = await createUser('token-version');
-    const { token } = await authService.loginUser({ email: user.email, password });
+    const { token } = await authService.loginUser({ email: user.email, password: TEST_PASSWORD });
 
     const beforeUpdate = await authenticate.getAuthenticatedUserFromToken(token);
     expect(beforeUpdate).toMatchObject({ userId: user.id, tokenVersion: 0 });
 
     await authService.updateUserProfile(user.id, {
-      currentPassword: password,
-      newPassword: 'NewValidPass123!',
+      currentPassword: TEST_PASSWORD,
+      newPassword: UPDATED_TEST_PASSWORD,
     });
 
     await expect(authenticate.getAuthenticatedUserFromToken(token)).resolves.toBeNull();
@@ -250,6 +292,20 @@ describe('auth edge cases', () => {
     });
 
     await expect(
+      authService.updateUserProfile(user.id, { name: '  Renamed Profile  ' }),
+    ).resolves.toMatchObject({
+      id: user.id,
+      name: 'Renamed Profile',
+      tokenVersion: 0,
+    });
+
+    await expect(
+      authService.updateUserProfile(user.id, { name: '   ' }),
+    ).rejects.toMatchObject({
+      name: 'ValidationError',
+    });
+
+    await expect(
       authService.updateUserProfile(user.id, { email: 'invalid-email' }),
     ).rejects.toMatchObject({
       name: 'ValidationError',
@@ -264,7 +320,7 @@ describe('auth edge cases', () => {
     await expect(
       authService.updateUserProfile(user.id, {
         email: taken.email,
-        currentPassword: password,
+        currentPassword: TEST_PASSWORD,
       }),
     ).rejects.toMatchObject({
       name: 'ConflictError',
@@ -272,7 +328,7 @@ describe('auth edge cases', () => {
 
     const updated = await authService.updateUserProfile(user.id, {
       email: uniqueEmail('updated-profile'),
-      currentPassword: password,
+      currentPassword: TEST_PASSWORD,
     });
 
     expect(updated.tokenVersion).toBe(1);
@@ -293,6 +349,29 @@ describe('auth edge cases', () => {
 });
 
 describe('places auth and sharing edge cases', () => {
+  it('filters SSE place-created events to the owner and authorized recipients', async () => {
+    const owner = await createUser('sse-owner');
+    const other = await createUser('sse-other');
+    const ownerResponse = createSseResponse();
+    const otherResponse = createSseResponse();
+    const place = await createPlaceForUser(owner.id, { title: 'Private SSE Place' });
+
+    sse.registerClient(ownerResponse, { userId: owner.id });
+    sse.registerClient(otherResponse, { userId: other.id });
+
+    try {
+      await sse.broadcastPlaceCreated(place);
+    } finally {
+      sse.removeClient(ownerResponse);
+      sse.removeClient(otherResponse);
+    }
+
+    expect(ownerResponse.writes).toHaveLength(1);
+    expect(ownerResponse.writes[0]).toContain('event: place-created');
+    expect(ownerResponse.writes[0]).toContain(place.title);
+    expect(otherResponse.writes).toHaveLength(0);
+  });
+
   it('creates places for an authenticated user and deletes only owned places', async () => {
     const owner = await createUser('owner');
     const other = await createUser('other');

@@ -461,8 +461,9 @@ export default function TravelTrackerApp({ initialPlaces = [], currentUser = nul
     }
   }, [readApiError, replacePlace]);
 
-  const handleUpdateProfile = useCallback(async ({ email, currentPassword, newPassword }) => {
+  const handleUpdateProfile = useCallback(async ({ name, email, currentPassword, newPassword }) => {
     const payload = {
+      name,
       email,
     };
 
