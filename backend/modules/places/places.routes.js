@@ -1,8 +1,17 @@
 const express = require('express');
+const rateLimit = require('express-rate-limit');
 const placesService = require('./places.service');
 const authenticate = require('../../middleware/authenticate');
 
 const router = express.Router();
+const createPlaceLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 20,
+  standardHeaders: 'draft-8',
+  legacyHeaders: false,
+  keyGenerator: (req) => String(req.user.userId),
+  message: { error: 'Zu viele neue Orte. Bitte versuche es spaeter erneut.' },
+});
 
 router.get('/public-shares/:token', async (req, res) => {
   try {
@@ -31,7 +40,7 @@ router.get('/', authenticate, async (req, res) => {
   }
 });
 
-router.post('/', authenticate, async (req, res) => {
+router.post('/', authenticate, createPlaceLimiter, async (req, res) => {
   try {
     const newPlace = await placesService.createPlace(req.body, req.user.userId);
     return res.status(201).json(newPlace);

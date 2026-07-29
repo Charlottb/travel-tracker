@@ -1,34 +1,35 @@
 import { NextResponse } from 'next/server';
-
-const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:3001';
+import {
+  buildBackendUrl,
+  getBackendHeaders,
+  readError,
+  rejectInvalidMutationOrigin,
+  validatePositiveIntegerParam,
+} from '../../proxyUtils';
 
 function getBackendPublicShareUrl(id) {
-  return `${BACKEND_URL.replace(/\/$/, '')}/places/${id}/public-share`;
-}
-
-async function readError(response) {
-  const text = await response.text();
-  return text || response.statusText || 'Unknown API error';
-}
-
-function getCookieHeaders(request, headers = {}) {
-  const cookie = request.headers.get('cookie');
-
-  return {
-    ...headers,
-    ...(cookie ? { cookie } : {}),
-  };
+  return buildBackendUrl(`/places/${id}/public-share`);
 }
 
 export async function POST(request, { params }) {
-  const { id } = await params;
+  const invalidOriginResponse = rejectInvalidMutationOrigin(request);
+  if (invalidOriginResponse) {
+    return invalidOriginResponse;
+  }
+
+  const { id: rawId } = await params;
+  const id = validatePositiveIntegerParam(rawId);
+  if (!id) {
+    return NextResponse.json({ error: 'Ungueltige ID' }, { status: 400 });
+  }
+
   const url = getBackendPublicShareUrl(id);
 
   try {
     const response = await fetch(url, {
       method: 'POST',
       cache: 'no-store',
-      headers: getCookieHeaders(request, { Accept: 'application/json' }),
+      headers: getBackendHeaders(request, { Accept: 'application/json' }),
     });
 
     if (!response.ok) {
@@ -50,14 +51,24 @@ export async function POST(request, { params }) {
 }
 
 export async function DELETE(request, { params }) {
-  const { id } = await params;
+  const invalidOriginResponse = rejectInvalidMutationOrigin(request);
+  if (invalidOriginResponse) {
+    return invalidOriginResponse;
+  }
+
+  const { id: rawId } = await params;
+  const id = validatePositiveIntegerParam(rawId);
+  if (!id) {
+    return NextResponse.json({ error: 'Ungueltige ID' }, { status: 400 });
+  }
+
   const url = getBackendPublicShareUrl(id);
 
   try {
     const response = await fetch(url, {
       method: 'DELETE',
       cache: 'no-store',
-      headers: getCookieHeaders(request, { Accept: 'application/json' }),
+      headers: getBackendHeaders(request, { Accept: 'application/json' }),
     });
 
     if (!response.ok) {

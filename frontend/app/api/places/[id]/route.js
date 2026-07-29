@@ -1,18 +1,27 @@
 import { NextResponse } from 'next/server';
-
-const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:3001';
+import {
+  buildBackendUrl,
+  readError,
+  rejectInvalidMutationOrigin,
+  validatePositiveIntegerParam,
+} from '../proxyUtils';
 
 function getBackendPlaceUrl(id) {
-  return `${BACKEND_URL.replace(/\/$/, '')}/places/${id}`;
-}
-
-async function readError(response) {
-  const text = await response.text();
-  return text || response.statusText || 'Unknown API error';
+  return buildBackendUrl(`/places/${id}`);
 }
 
 export async function DELETE(request, { params }) {
-  const { id } = await params;
+  const invalidOriginResponse = rejectInvalidMutationOrigin(request);
+  if (invalidOriginResponse) {
+    return invalidOriginResponse;
+  }
+
+  const { id: rawId } = await params;
+  const id = validatePositiveIntegerParam(rawId);
+  if (!id) {
+    return NextResponse.json({ error: 'Ungueltige ID' }, { status: 400 });
+  }
+
   const url = getBackendPlaceUrl(id);
 
   try {
@@ -43,7 +52,17 @@ export async function DELETE(request, { params }) {
 }
 
 export async function PUT(request, { params }) {
-  const { id } = await params;
+  const invalidOriginResponse = rejectInvalidMutationOrigin(request);
+  if (invalidOriginResponse) {
+    return invalidOriginResponse;
+  }
+
+  const { id: rawId } = await params;
+  const id = validatePositiveIntegerParam(rawId);
+  if (!id) {
+    return NextResponse.json({ error: 'Ungueltige ID' }, { status: 400 });
+  }
+
   const url = getBackendPlaceUrl(id);
 
   try {

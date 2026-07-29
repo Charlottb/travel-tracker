@@ -1,18 +1,21 @@
 import { NextResponse } from 'next/server';
-
-const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:3001';
+import {
+  buildBackendUrl,
+  readError,
+  validatePublicShareTokenParam,
+} from '../../proxyUtils';
 
 function getBackendPublicShareUrl(token) {
-  return `${BACKEND_URL.replace(/\/$/, '')}/places/public-shares/${token}`;
-}
-
-async function readError(response) {
-  const text = await response.text();
-  return text || response.statusText || 'Unknown API error';
+  return buildBackendUrl(`/places/public-shares/${token}`);
 }
 
 export async function GET(_request, { params }) {
-  const { token } = await params;
+  const { token: rawToken } = await params;
+  const token = validatePublicShareTokenParam(rawToken);
+  if (!token) {
+    return NextResponse.json({ error: 'Ungueltiger Share-Link.' }, { status: 400 });
+  }
+
   const url = getBackendPublicShareUrl(token);
 
   try {

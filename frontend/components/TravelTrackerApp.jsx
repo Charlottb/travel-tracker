@@ -462,8 +462,11 @@ export default function TravelTrackerApp({ initialPlaces = [], currentUser = nul
       email,
     };
 
-    if (newPassword) {
+    if (currentPassword) {
       payload.currentPassword = currentPassword;
+    }
+
+    if (newPassword) {
       payload.newPassword = newPassword;
     }
 

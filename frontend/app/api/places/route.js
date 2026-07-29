@@ -1,23 +1,13 @@
 import { NextResponse } from 'next/server';
-
-const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:3001';
+import {
+  buildBackendUrl,
+  getBackendHeaders,
+  readError,
+  rejectInvalidMutationOrigin,
+} from './proxyUtils';
 
 function getBackendPlacesUrl() {
-  return `${BACKEND_URL.replace(/\/$/, '')}/places`;
-}
-
-async function readError(response) {
-  const text = await response.text();
-  return text || response.statusText || 'Unknown API error';
-}
-
-function getBackendHeaders(request, headers = {}) {
-  const cookie = request.headers.get('cookie');
-
-  return {
-    ...headers,
-    ...(cookie ? { cookie } : {}),
-  };
+  return buildBackendUrl('/places');
 }
 
 export async function GET(request) {
@@ -50,6 +40,11 @@ export async function GET(request) {
 }
 
 export async function POST(request) {
+  const invalidOriginResponse = rejectInvalidMutationOrigin(request);
+  if (invalidOriginResponse) {
+    return invalidOriginResponse;
+  }
+
   const url = getBackendPlacesUrl();
 
   try {

@@ -143,6 +143,19 @@ async function getUserProfile(userId) {
 async function updateUserProfile(userId, { email, currentPassword, newPassword }) {
   const updates = {};
   const normalizedEmail = typeof email === 'string' ? normalizeEmail(email) : '';
+  const currentUser = await prisma.user.findUnique({
+    where: { id: userId },
+    select: {
+      email: true,
+      passwordHash: true,
+    },
+  });
+
+  if (!currentUser) {
+    const error = new Error('Profil konnte nicht geladen werden.');
+    error.name = 'ValidationError';
+    throw error;
+  }
 
   if (normalizedEmail) {
     if (!isValidEmail(normalizedEmail)) {
@@ -151,19 +164,37 @@ async function updateUserProfile(userId, { email, currentPassword, newPassword }
       throw error;
     }
 
-    const existingUser = await prisma.user.findFirst({
-      where: {
-        email: normalizedEmail,
-        NOT: { id: userId },
-      },
-      select: { id: true },
-    });
+    if (normalizedEmail !== currentUser.email) {
+      if (typeof currentPassword !== 'string' || currentPassword.length === 0) {
+        const error = new Error('Bitte gib dein aktuelles Passwort ein, um die E-Mail-Adresse zu ändern.');
+        error.name = 'ValidationError';
+        throw error;
+      }
 
-    if (existingUser) {
-      throw createConflictError(EMAIL_TAKEN_MESSAGE);
+      const passwordMatches = currentUser.passwordHash
+        ? await bcrypt.compare(currentPassword, currentUser.passwordHash)
+        : false;
+
+      if (!passwordMatches) {
+        const error = new Error('Das aktuelle Passwort ist falsch.');
+        error.name = 'ValidationError';
+        throw error;
+      }
+
+      const existingUser = await prisma.user.findFirst({
+        where: {
+          email: normalizedEmail,
+          NOT: { id: userId },
+        },
+        select: { id: true },
+      });
+
+      if (existingUser) {
+        throw createConflictError(EMAIL_TAKEN_MESSAGE);
+      }
+
+      updates.email = normalizedEmail;
     }
-
-    updates.email = normalizedEmail;
   }
 
   if (typeof newPassword === 'string' && newPassword.length > 0) {
@@ -179,12 +210,8 @@ async function updateUserProfile(userId, { email, currentPassword, newPassword }
       throw error;
     }
 
-    const userWithPassword = await prisma.user.findUnique({
-      where: { id: userId },
-      select: { passwordHash: true },
-    });
-    const passwordMatches = userWithPassword?.passwordHash
-      ? await bcrypt.compare(currentPassword, userWithPassword.passwordHash)
+    const passwordMatches = currentUser.passwordHash
+      ? await bcrypt.compare(currentPassword, currentUser.passwordHash)
       : false;
 
     if (!passwordMatches) {

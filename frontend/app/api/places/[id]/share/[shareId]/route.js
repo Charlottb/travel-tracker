@@ -1,18 +1,28 @@
 import { NextResponse } from 'next/server';
-
-const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:3001';
+import {
+  buildBackendUrl,
+  readError,
+  rejectInvalidMutationOrigin,
+  validatePositiveIntegerParam,
+} from '../../../proxyUtils';
 
 function getBackendShareUrl(id, shareId) {
-  return `${BACKEND_URL.replace(/\/$/, '')}/places/${id}/share/${shareId}`;
-}
-
-async function readError(response) {
-  const text = await response.text();
-  return text || response.statusText || 'Unknown API error';
+  return buildBackendUrl(`/places/${id}/share/${shareId}`);
 }
 
 export async function DELETE(request, { params }) {
-  const { id, shareId } = await params;
+  const invalidOriginResponse = rejectInvalidMutationOrigin(request);
+  if (invalidOriginResponse) {
+    return invalidOriginResponse;
+  }
+
+  const { id: rawId, shareId: rawShareId } = await params;
+  const id = validatePositiveIntegerParam(rawId);
+  const shareId = validatePositiveIntegerParam(rawShareId);
+  if (!id || !shareId) {
+    return NextResponse.json({ error: 'Ungueltige ID' }, { status: 400 });
+  }
+
   const url = getBackendShareUrl(id, shareId);
 
   try {
