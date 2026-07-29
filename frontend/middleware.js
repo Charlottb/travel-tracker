@@ -1,10 +1,8 @@
-import { jwtVerify } from 'jose/jwt/verify';
 import { NextResponse } from 'next/server';
 
 const PUBLIC_EXACT_PATHS = new Set(['/', '/login', '/register']);
 const PUBLIC_SEGMENT_PATHS = ['/share'];
 const AUTH_COOKIE_NAME = 'authToken';
-const JWT_SECRET = process.env.JWT_SECRET;
 const isProduction = process.env.NODE_ENV === 'production';
 const configuredBackendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || process.env.BACKEND_URL;
 
@@ -70,21 +68,6 @@ function isPublicPath(pathname) {
   );
 }
 
-async function verifyJwtToken(token) {
-  if (!JWT_SECRET) {
-    return false;
-  }
-
-  try {
-    const secret = new TextEncoder().encode(JWT_SECRET);
-    const { payload } = await jwtVerify(token, secret);
-
-    return typeof payload?.userId === 'number' && typeof payload?.email === 'string';
-  } catch (_error) {
-    return false;
-  }
-}
-
 async function validateTokenWithBackend(request) {
   const cookie = request.headers.get('cookie');
 
@@ -106,10 +89,6 @@ async function validateTokenWithBackend(request) {
 }
 
 async function isValidAuthToken(request, token) {
-  if (await verifyJwtToken(token)) {
-    return true;
-  }
-
   return validateTokenWithBackend(request);
 }
 
@@ -134,7 +113,7 @@ export async function middleware(request) {
   }
 
   if (token && !(await isValidAuthToken(request, token))) {
-    if (!publicPath) {
+    if (!publicPath || pathname === '/') {
       return redirectToLoginAndClearCookie(request);
     }
 

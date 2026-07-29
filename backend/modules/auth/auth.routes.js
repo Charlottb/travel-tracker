@@ -63,7 +63,13 @@ router.get('/me', authenticate, async (req, res) => {
 
 router.patch('/profile', authenticate, async (req, res) => {
   try {
-    const user = await authService.updateUserProfile(req.user.userId, req.body || {});
+    const { name, email, currentPassword, newPassword } = req.body || {};
+    const user = await authService.updateUserProfile(req.user.userId, {
+      name,
+      email,
+      currentPassword,
+      newPassword,
+    });
     const token = authService.createAuthToken(user);
     authService.setAuthCookie(res, token);
     return res.json({ user: authService.serializeUser(user) });
