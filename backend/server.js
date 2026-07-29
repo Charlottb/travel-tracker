@@ -73,14 +73,6 @@ function rejectCrossSiteMutations(req, res, next) {
   return res.status(403).json({ error: 'Ungueltige Anfrage.' });
 }
 
-const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  limit: 30,
-  standardHeaders: 'draft-8',
-  legacyHeaders: false,
-  message: { error: 'Zu viele Anfragen. Bitte versuche es spaeter erneut.' },
-});
-
 const profileLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   limit: 80,
@@ -121,8 +113,6 @@ app.use(
   }),
 );
 app.use(rejectCrossSiteMutations);
-app.use('/api/auth/login', authLimiter);
-app.use('/api/auth/register', authLimiter);
 app.use('/api/auth/profile', profileLimiter);
 
 app.get('/api/events', authenticate, (req, res) => {

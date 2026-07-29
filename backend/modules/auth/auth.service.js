@@ -5,7 +5,10 @@ const { normalizeEmail, isValidEmail, isValidPassword } = require('../../lib/val
 
 const INVALID_CREDENTIALS_MESSAGE = 'E-Mail oder Passwort ungültig.';
 const EMAIL_TAKEN_MESSAGE = 'E-Mail ist bereits vergeben.';
-const DUMMY_PASSWORD_HASH = '$2b$12$MjG0wMTx7iYv./kodfx6vOwgmuajpda8EpVuDqUOEDnG2gx8MfEEW';
+const DUMMY_PASSWORD = 'not-a-real-user-password';
+const dummyPasswordHashPromise = process.env.DUMMY_PASSWORD_HASH
+  ? Promise.resolve(process.env.DUMMY_PASSWORD_HASH)
+  : bcrypt.hash(DUMMY_PASSWORD, 12);
 
 function getJwtSecret() {
   if (!process.env.JWT_SECRET) {
@@ -58,6 +61,10 @@ function createConflictError(message) {
   return error;
 }
 
+async function getDummyPasswordHash() {
+  return dummyPasswordHashPromise;
+}
+
 async function registerUser({ email, password, name }) {
   validateRegisterData({ email, password });
 
@@ -97,7 +104,7 @@ async function loginUser({ email, password }) {
     where: { email: normalizedEmail },
   });
 
-  const passwordHash = user?.passwordHash || DUMMY_PASSWORD_HASH;
+  const passwordHash = user?.passwordHash || await getDummyPasswordHash();
   const passwordMatches = await bcrypt.compare(password, passwordHash);
 
   if (!user || !user.passwordHash || !passwordMatches) {
