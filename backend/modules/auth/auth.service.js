@@ -41,10 +41,20 @@ function createAuthToken(user) {
     {
       userId: user.id,
       email: user.email,
+      tokenVersion: user.tokenVersion,
     },
     getJwtSecret(),
     { expiresIn: '24h' },
   );
+}
+
+function serializeUser(user) {
+  return {
+    id: user.id,
+    email: user.email,
+    name: user.name,
+    ...(user.createdAt ? { createdAt: user.createdAt } : {}),
+  };
 }
 
 function validateRegisterData({ email, password }) {
@@ -117,11 +127,7 @@ async function loginUser({ email, password }) {
 
   return {
     token,
-    user: {
-      id: user.id,
-      email: user.email,
-      name: user.name,
-    },
+    user: serializeUser(user),
   };
 }
 
@@ -154,8 +160,11 @@ async function updateUserProfile(userId, { email, currentPassword, newPassword }
   const currentUser = await prisma.user.findUnique({
     where: { id: userId },
     select: {
+      id: true,
       email: true,
+      name: true,
       passwordHash: true,
+      tokenVersion: true,
     },
   });
 
@@ -220,8 +229,21 @@ async function updateUserProfile(userId, { email, currentPassword, newPassword }
     updates.passwordHash = await bcrypt.hash(newPassword, 12);
   }
 
+  if (requiresCurrentPassword) {
+    updates.tokenVersion = { increment: 1 };
+  }
+
   if (Object.keys(updates).length === 0) {
-    return getUserProfile(userId);
+    return prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        createdAt: true,
+        tokenVersion: true,
+      },
+    });
   }
 
   return prisma.user.update({
@@ -232,6 +254,7 @@ async function updateUserProfile(userId, { email, currentPassword, newPassword }
       email: true,
       name: true,
       createdAt: true,
+      tokenVersion: true,
     },
   });
 }
@@ -263,4 +286,5 @@ module.exports = {
   findUserByEmail,
   setAuthCookie,
   getAuthCookieOptions,
+  serializeUser,
 };

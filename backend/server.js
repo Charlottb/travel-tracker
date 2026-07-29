@@ -14,6 +14,8 @@ const authenticate = require('./middleware/authenticate');
 const { registerClient, removeClient } = require('./lib/sse');
 
 const app = express();
+app.set('trust proxy', 1);
+
 const configuredFrontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
 const allowedOrigins = new Set([configuredFrontendUrl, 'http://localhost:3000', 'http://localhost:3002']);
 const mutatingMethods = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
@@ -31,6 +33,19 @@ const connectSources = [
 
 function isAllowedOrigin(origin) {
   return !origin || allowedOrigins.has(origin);
+}
+
+function isAllowedRequestSource(value) {
+  if (!value) {
+    return false;
+  }
+
+  try {
+    const source = new URL(value);
+    return allowedOrigins.has(source.origin);
+  } catch (_error) {
+    return false;
+  }
 }
 
 function parseCookieHeader(cookieHeader = '') {
@@ -62,16 +77,26 @@ function rejectCrossSiteMutations(req, res, next) {
   }
 
   const origin = req.get('origin');
+  const referer = req.get('referer');
+
   if (!origin && process.env.NODE_ENV !== 'production') {
     return next();
   }
 
-  if (origin && allowedOrigins.has(origin)) {
+  if (origin ? isAllowedRequestSource(origin) : isAllowedRequestSource(referer)) {
     return next();
   }
 
   return res.status(403).json({ error: 'Ungueltige Anfrage.' });
 }
+
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 10,
+  standardHeaders: 'draft-8',
+  legacyHeaders: false,
+  message: { error: 'Zu viele Anfragen. Bitte versuche es spaeter erneut.' },
+});
 
 const profileLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -113,6 +138,8 @@ app.use(
   }),
 );
 app.use(rejectCrossSiteMutations);
+app.use('/api/auth/login', authLimiter);
+app.use('/api/auth/register', authLimiter);
 app.use('/api/auth/profile', profileLimiter);
 
 app.get('/api/events', authenticate, (req, res) => {
@@ -149,11 +176,11 @@ const io = new Server(server, {
   },
 });
 
-io.use((socket, next) => {
+io.use(async (socket, next) => {
   try {
     const cookies = parseCookieHeader(socket.handshake.headers.cookie);
     const token = cookies[authenticate.AUTH_COOKIE_NAME];
-    const user = token ? authenticate.getAuthenticatedUserFromToken(token) : null;
+    const user = token ? await authenticate.getAuthenticatedUserFromToken(token) : null;
 
     if (!user) {
       return next(new Error('Unauthorized'));

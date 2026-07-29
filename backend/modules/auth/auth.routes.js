@@ -1,18 +1,10 @@
 const express = require('express');
-const rateLimit = require('express-rate-limit');
 const authService = require('./auth.service');
 const authenticate = require('../../middleware/authenticate');
 
 const router = express.Router();
-const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  limit: 10,
-  standardHeaders: 'draft-8',
-  legacyHeaders: false,
-  message: { error: 'Zu viele Login- oder Registrierungsversuche. Bitte versuche es spaeter erneut.' },
-});
 
-router.post('/register', authLimiter, async (req, res) => {
+router.post('/register', async (req, res) => {
   try {
     const { email, password, name } = req.body;
     const user = await authService.registerUser({ email, password, name });
@@ -31,12 +23,12 @@ router.post('/register', authLimiter, async (req, res) => {
   }
 });
 
-router.post('/login', authLimiter, async (req, res) => {
+router.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body;
     const { token, user } = await authService.loginUser({ email, password });
     authService.setAuthCookie(res, token);
-    return res.json({ token, user });
+    return res.json({ user });
   } catch (error) {
     if (error.name === 'ValidationError') {
       return res.status(401).json({ error: error.message });
@@ -74,7 +66,7 @@ router.patch('/profile', authenticate, async (req, res) => {
     const user = await authService.updateUserProfile(req.user.userId, req.body || {});
     const token = authService.createAuthToken(user);
     authService.setAuthCookie(res, token);
-    return res.json({ user });
+    return res.json({ user: authService.serializeUser(user) });
   } catch (error) {
     if (error.name === 'ValidationError') {
       return res.status(400).json({ error: error.message });

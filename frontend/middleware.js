@@ -7,7 +7,7 @@ const AUTH_COOKIE_NAME = 'authToken';
 const JWT_SECRET = process.env.JWT_SECRET;
 const CSP_HEADER = [
   "default-src 'self'",
-  "script-src 'self' 'unsafe-inline'",
+  "script-src 'self'",
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob: https://cdnjs.cloudflare.com https://*.basemaps.cartocdn.com https://*.tile.openstreetmap.org",
   "connect-src 'self' http://localhost:3000 http://localhost:3001 https://nominatim.openstreetmap.org",
