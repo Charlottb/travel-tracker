@@ -12,8 +12,15 @@ const createPlaceLimiter = rateLimit({
   keyGenerator: (req) => String(req.user.userId),
   message: { error: 'Zu viele neue Orte. Bitte versuche es spaeter erneut.' },
 });
+const publicShareLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 100,
+  standardHeaders: 'draft-8',
+  legacyHeaders: false,
+  message: { error: 'Zu viele Anfragen. Bitte versuche es spaeter erneut.' },
+});
 
-router.get('/public-shares/:token', async (req, res) => {
+router.get('/public-shares/:token', publicShareLimiter, async (req, res) => {
   try {
     const place = await placesService.getPublicSharedPlace(req.params.token);
 
