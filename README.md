@@ -1,5 +1,111 @@
 # travel-tracker
 
+## Quickstart fuer die Abgabe
+
+Die App besteht aus einem Next.js-Frontend, einem Express-Backend und einer lokalen SQLite-Datenbank ueber Prisma. Fuer die lokale Entwicklung sind die Standard-Ports:
+
+| Teil | URL / Port |
+| --- | --- |
+| Frontend | `http://localhost:3000` |
+| Backend | `http://localhost:3003` |
+| SQLite DB | `backend/dev.db` |
+
+### Setup ab frischem Clone
+
+```bash
+cp backend/.env.example backend/.env
+cp frontend/.env.example frontend/.env.local
+npm run install:all
+npm run prisma:generate
+npm run prisma:migrate
+npm run dev
+```
+
+Danach ist die App unter `http://localhost:3000` erreichbar. Registrierung und Login laufen ueber die Next-API-Routen im Frontend, die intern zum Express-Backend auf `http://localhost:3003` proxyn.
+
+### Root-Skripte
+
+| Befehl | Zweck |
+| --- | --- |
+| `npm run install:all` | Installiert Backend- und Frontend-Abhaengigkeiten. |
+| `npm run dev` | Startet Backend und Frontend gemeinsam in einem Terminal. |
+| `npm run prisma:generate` | Erstellt den Prisma Client im Backend. |
+| `npm run prisma:migrate` | Spielt vorhandene Prisma-Migrationen nicht-interaktiv gegen SQLite ein. |
+| `npm run test` | Fuehrt Backend- und Frontend-Vitest-Tests aus. |
+| `npm run test:coverage` | Fuehrt Backend- und Frontend-Tests mit Coverage aus. |
+| `npm run build` | Generiert Prisma Client und baut das Next.js-Frontend. |
+
+### Env-Dateien
+
+Beispiele liegen bewusst ohne echte Secrets im Repository:
+
+- `backend/.env.example` -> nach `backend/.env` kopieren
+- `frontend/.env.example` -> nach `frontend/.env.local` kopieren
+
+Wichtige Backend-Variablen:
+
+| Variable | Lokaler Default | Beschreibung |
+| --- | --- | --- |
+| `DATABASE_URL` | `file:./dev.db` | SQLite-Datei relativ zu `backend/`. |
+| `JWT_SECRET` | `dev-secret-change-me` | Nur lokaler Entwicklungswert; fuer Deployments ersetzen. |
+| `PORT` | `3003` | Express-Port. |
+| `BACKEND_URL` | `http://localhost:3003` | Kanonische Backend-URL fuer lokale Checks und CSP. |
+| `FRONTEND_URL` | `http://localhost:3000` | Erlaubte Frontend-Origin fuer CORS/CSRF-Pruefungen. |
+| `RESEND_API_KEY` | leer | Optional fuer echten E-Mail-Versand. |
+| `RESEND_FROM_EMAIL` | `no-reply@travel-tracker.local` | Absender fuer optionale Transaktionsmails. |
+
+Wichtige Frontend-Variablen:
+
+| Variable | Lokaler Default | Beschreibung |
+| --- | --- | --- |
+| `NEXT_PUBLIC_APP_URL` | `http://localhost:3000` | Oeffentliche URL der Next-App. |
+| `BACKEND_URL` | `http://localhost:3003` | Server-seitiger Proxy-Zielhost fuer Next API Routes. |
+| `NEXT_PUBLIC_API_BASE_URL` | `/api` | Browser-API-Basis; bleibt lokal beim Next-Proxy. |
+| `NEXT_PUBLIC_BACKEND_URL` | `http://localhost:3003` | Browser-Ziel fuer SSE und socket.io. |
+| `NEXT_PUBLIC_DEBUG_API` | `false` | Optionales Fetch-Debugging. |
+
+### Tests
+
+```bash
+npm run test
+npm run test:coverage
+```
+
+Optional fuer E2E-Tests:
+
+```bash
+npm --prefix frontend run cy:run
+```
+
+Wenn am Prisma-Schema gearbeitet wird, kann eine neue Entwicklungs-Migration im Backend erzeugt werden:
+
+```bash
+npm --prefix backend run prisma:migrate:dev
+```
+
+### Troubleshooting
+
+Wenn `npm run dev` mit `EADDRINUSE` fehlschlaegt, ist ein benoetigter Port bereits belegt. Pruefen:
+
+```bash
+lsof -nP -iTCP:3000 -sTCP:LISTEN
+lsof -nP -iTCP:3003 -sTCP:LISTEN
+```
+
+Den betroffenen Prozess beenden:
+
+```bash
+kill <PID>
+```
+
+Falls alte Projektversionen noch auf `3001` laufen, ebenfalls pruefen:
+
+```bash
+lsof -nP -iTCP:3001 -sTCP:LISTEN
+```
+
+Wenn Login oder Registrierung nach Codeaenderungen merkwuerdig reagieren, den Browser-Tab neu oeffnen oder einen Hard Reload ausfuehren. Next.js muss ausserdem nach Aenderungen an `.env.local` neu gestartet werden.
+
 ## Technologie-Entscheidung: SSR/Next.js vs. Vite
 
 Die App verwendet Next.js mit Server-Side Rendering (SSR), da SEO für die Reiseorte entscheidend ist – Suchmaschinen können den HTML-Inhalt sofort indexieren. Für Interaktivität (z.B. Karte und Formulare) reicht Client-Side Rendering aus, aber Vite wäre in der Entwicklung schneller und einfacher, bietet jedoch keine native SSR-Unterstützung.

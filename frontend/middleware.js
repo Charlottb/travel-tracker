@@ -31,14 +31,26 @@ if (!isProduction) {
   connectSources.push(
     'http://localhost:3000',
     'http://localhost:3001',
+    'http://localhost:3002',
+    'http://localhost:3003',
     'http://localhost:3004',
+    'ws://localhost:3000',
     'ws://localhost:3001',
+    'ws://localhost:3002',
+    'ws://localhost:3003',
+    'ws://localhost:3004',
   );
+}
+
+const scriptSources = ["'self'", "'unsafe-inline'"];
+
+if (!isProduction) {
+  scriptSources.push("'unsafe-eval'");
 }
 
 const CSP_HEADER = [
   "default-src 'self'",
-  "script-src 'self' 'unsafe-inline'",
+  `script-src ${scriptSources.join(' ')}`,
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob: https://cdnjs.cloudflare.com https://*.basemaps.cartocdn.com https://*.tile.openstreetmap.org",
   `connect-src ${connectSources.join(' ')}`,

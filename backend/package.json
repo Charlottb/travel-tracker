@@ -6,9 +6,11 @@
     "start": "node server.js",
     "import:places": "node scripts/import-places-json.js",
     "prisma:generate": "prisma generate",
-    "prisma:migrate": "prisma migrate dev",
+    "prisma:migrate": "prisma migrate deploy",
+    "prisma:migrate:dev": "prisma migrate dev",
     "prisma:studio": "prisma studio",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
     "@prisma/adapter-better-sqlite3": "^7.9.0",
@@ -30,6 +32,7 @@
   },
   "devDependencies": {
     "@prisma/config": "^7.9.0",
+    "@vitest/coverage-v8": "^4.1.9",
     "dotenv": "^17.4.2",
     "prisma": "^7.9.0",
     "typescript": "^5.9.3",

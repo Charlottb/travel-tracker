@@ -68,7 +68,7 @@ export default function LoginPage() {
           <p className="text-sm text-slate-600">Melde dich an, um deine Reiseorte zu sehen und zu verwalten.</p>
         </div>
 
-        <form className="space-y-5" onSubmit={handleSubmit} autoComplete="on">
+        <form className="space-y-5" method="post" onSubmit={handleSubmit} autoComplete="on">
           <label htmlFor="email" className="block">
             <span className="text-sm font-bold text-slate-700">E-Mail</span>
             <input
