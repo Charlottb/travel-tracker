@@ -1,8 +1,19 @@
-# travel-tracker
+# Travel Tracker
 
-## Quickstart fuer die Abgabe
+Travel Tracker ist eine Web-App zum Speichern und Verwalten von Orten auf einer interaktiven Karte. Nutzer koennen Reiseorte anlegen, bearbeiten, loeschen, nach Trips organisieren und Orte mit anderen Nutzern oder per Public-Share-Link teilen.
 
-Die App besteht aus einem Next.js-Frontend, einem Express-Backend und einer lokalen SQLite-Datenbank ueber Prisma. Fuer die lokale Entwicklung sind die Standard-Ports:
+## Projektueberblick
+
+Tech Stack:
+
+| Bereich | Technologien |
+| --- | --- |
+| Frontend | Next.js, React, Tailwind CSS, Leaflet / React Leaflet |
+| Backend | Express, Prisma |
+| Datenbank | SQLite |
+| Tests | Vitest, Cypress |
+
+Die App besteht aus einem Next.js-Frontend, einem Express-Backend und einer lokalen SQLite-Datenbank ueber Prisma. Fuer die lokale Entwicklung sind die aktuell konfigurierten Standard-Ports:
 
 | Teil | URL / Port |
 | --- | --- |
@@ -10,39 +21,24 @@ Die App besteht aus einem Next.js-Frontend, einem Express-Backend und einer loka
 | Backend | `http://localhost:3003` |
 | SQLite DB | `backend/dev.db` |
 
-### Setup ab frischem Clone
+## Voraussetzungen
 
-```bash
-cp backend/.env.example backend/.env
-cp frontend/.env.example frontend/.env.local
-npm run install:all
-npm run prisma:generate
-npm run prisma:migrate
-npm run dev
-```
+- Node.js: empfohlen `>= 20`; lokal zuletzt mit `v24.15.0` geprueft.
+- npm: lokal zuletzt mit `11.12.1` geprueft.
+- Prisma: wird ueber die Backend-Dependencies installiert und per `npx prisma ...` oder Root-Skripten ausgefuehrt.
+- SQLite: wird lokal ueber Prisma/`better-sqlite3` genutzt; es ist kein separater Datenbankserver noetig.
 
-Danach ist die App unter `http://localhost:3000` erreichbar. Registrierung und Login laufen ueber die Next-API-Routen im Frontend, die intern zum Express-Backend auf `http://localhost:3003` proxyn.
-
-### Root-Skripte
-
-| Befehl | Zweck |
-| --- | --- |
-| `npm run install:all` | Installiert Backend- und Frontend-Abhaengigkeiten. |
-| `npm run dev` | Startet Backend und Frontend gemeinsam in einem Terminal. |
-| `npm run prisma:generate` | Erstellt den Prisma Client im Backend. |
-| `npm run prisma:migrate` | Spielt vorhandene Prisma-Migrationen nicht-interaktiv gegen SQLite ein. |
-| `npm run test` | Fuehrt alle Tests aus: Backend/Frontend Vitest plus Cypress E2E. |
-| `npm run test:unit` | Fuehrt nur Backend- und Frontend-Vitest-Tests aus. |
-| `npm run test:e2e` | Startet die App und fuehrt Cypress E2E aus. |
-| `npm run test:coverage` | Fuehrt Backend- und Frontend-Tests mit Coverage aus. |
-| `npm run build` | Generiert Prisma Client und baut das Next.js-Frontend. |
-
-### Env-Dateien
+## Environment Setup
 
 Beispiele liegen bewusst ohne echte Secrets im Repository:
 
 - `backend/.env.example` -> nach `backend/.env` kopieren
 - `frontend/.env.example` -> nach `frontend/.env.local` kopieren
+
+```bash
+cp backend/.env.example backend/.env
+cp frontend/.env.example frontend/.env.local
+```
 
 Wichtige Backend-Variablen:
 
@@ -50,8 +46,8 @@ Wichtige Backend-Variablen:
 | --- | --- | --- |
 | `DATABASE_URL` | `file:./dev.db` | SQLite-Datei relativ zu `backend/`. |
 | `JWT_SECRET` | `dev-secret-change-me` | Nur lokaler Entwicklungswert; fuer Deployments ersetzen. |
-| `PORT` | `3003` | Express-Port. |
-| `BACKEND_URL` | `http://localhost:3003` | Kanonische Backend-URL fuer lokale Checks und CSP. |
+| `PORT` | `3003` | Express-Port aus `backend/.env.example`. Ohne Env-Fallback startet `server.js` auf `3001`. |
+| `BACKEND_URL` | `http://localhost:3003` | Kanonische Backend-URL fuer lokale Checks, CORS/CSRF und CSP. |
 | `FRONTEND_URL` | `http://localhost:3000` | Erlaubte Frontend-Origin fuer CORS/CSRF-Pruefungen. |
 | `RESEND_API_KEY` | leer | Optional fuer echten E-Mail-Versand. |
 | `RESEND_FROM_EMAIL` | `no-reply@travel-tracker.local` | Absender fuer optionale Transaktionsmails. |
@@ -66,43 +62,130 @@ Wichtige Frontend-Variablen:
 | `NEXT_PUBLIC_BACKEND_URL` | `http://localhost:3003` | Browser-Ziel fuer SSE und socket.io. |
 | `NEXT_PUBLIC_DEBUG_API` | `false` | Optionales Fetch-Debugging. |
 
-### Tests
+Keine echten Secrets in `.env.example`, README oder Git eintragen. Fuer Production muss `JWT_SECRET` mindestens 32 Zeichen/Bytes lang sein und darf nicht `dev-secret-change-me` sein.
+
+## Installation
+
+Der Root enthaelt ein `package.json` fuer gemeinsame Skripte. Die eigentlichen Dependencies liegen in `backend/` und `frontend/`.
 
 ```bash
-npm run test
-npm run test:coverage
+npm run install:all
 ```
 
-`npm run test` startet fuer Cypress automatisch Frontend und Backend. Der Coverage-Report wird hier erzeugt:
-
-- Backend: `backend/coverage/index.html`
-- Frontend: `frontend/coverage/index.html`
-
-Optional nur fuer E2E-Tests:
+Alternativ getrennt:
 
 ```bash
-npm run test:e2e
+npm ci --prefix backend
+npm ci --prefix frontend
 ```
 
-### Hinweis zu Cypress lokal
+## Datenbank und Prisma
 
-Die Cypress-E2E-Tests liegen unter `frontend/cypress/e2e/auth.cy.js` und decken Landingpage, Registrierung, Login, Ort erstellen/löschen, Profil und Logout ab.
+Lokale SQLite-Daten liegen standardmaessig in `backend/dev.db`. Das Prisma-Schema liegt unter `backend/prisma/schema.prisma`.
 
-Auf dem lokalen Mac konnte Cypress wegen eines defekten/inkompatiblen Cypress-Binary-Caches nicht final gestartet werden (`bad option: --smoke-test`). `npx cypress install --force` wurde ausgeführt, der Fehler blieb bestehen.
+```bash
+npm run prisma:generate
+npm run prisma:migrate
+```
 
-Backend-Tests und Coverage laufen erfolgreich:
-- Statements: 85.66%
-- Branches: 82.52%
-- Functions: 91.66%
-- Lines: 85.55%
+Die Root-Skripte fuehren im Backend aus:
 
-Wenn am Prisma-Schema gearbeitet wird, kann eine neue Entwicklungs-Migration im Backend erzeugt werden:
+```bash
+npx prisma generate
+npx prisma migrate deploy
+```
+
+Fuer neue Entwicklungs-Migrationen:
 
 ```bash
 npm --prefix backend run prisma:migrate:dev
 ```
 
-### Troubleshooting
+Das entspricht `npx prisma migrate dev` im Backend-Kontext.
+
+## App Starten
+
+One-Command-Start aus dem Root:
+
+```bash
+npm run dev
+```
+
+Danach ist die App unter `http://localhost:3000` erreichbar. Registrierung und Login laufen ueber die Next-API-Routen im Frontend, die intern zum Express-Backend auf `http://localhost:3003` proxyn.
+
+Alternativ getrennt:
+
+```bash
+npm --prefix backend start
+npm --prefix frontend run dev
+```
+
+## Root-Skripte
+
+| Befehl | Zweck |
+| --- | --- |
+| `npm run install:all` | Installiert Backend- und Frontend-Abhaengigkeiten. |
+| `npm run dev` | Startet Backend und Frontend gemeinsam in einem Terminal. |
+| `npm run prisma:generate` | Erstellt den Prisma Client im Backend. |
+| `npm run prisma:migrate` | Spielt vorhandene Prisma-Migrationen nicht-interaktiv gegen SQLite ein. |
+| `npm run test` | Fuehrt alle Tests aus: Backend/Frontend Vitest plus Cypress E2E. |
+| `npm run test:unit` | Fuehrt nur Backend- und Frontend-Vitest-Tests aus. |
+| `npm run test:e2e` | Startet die App und fuehrt Cypress E2E aus. |
+| `npm run test:coverage` | Fuehrt Backend- und Frontend-Tests mit Coverage aus. |
+| `npm run build` | Generiert Prisma Client und baut das Next.js-Frontend. |
+
+## Tests
+
+```bash
+npm run test
+npm run test:unit
+npm run test:e2e
+npm run test:coverage
+```
+
+`npm run test` fuehrt Backend/Frontend Vitest und danach Cypress E2E aus. `npm run test:e2e` startet die App automatisch und fuehrt Cypress aus.
+
+Aktuelle Coverage-Werte:
+
+| Metrik | Wert |
+| --- | ---: |
+| Statements | 85.66% |
+| Branches | 82.52% |
+| Functions | 91.66% |
+| Lines | 85.55% |
+
+Coverage-Reports:
+
+- Backend: `backend/coverage/index.html`
+- Frontend: `frontend/coverage/index.html`
+
+## Security-Hinweise
+
+- JWTs werden als HttpOnly Cookie `authToken` gesetzt.
+- `tokenVersion` invalidiert alte Tokens nach sensiblen Profil-Aenderungen wie Passwort- oder E-Mail-Aenderung.
+- Rate Limiting ist fuer Auth-Routen, Profil-Updates und Place-Creation konfiguriert.
+- CORS erlaubt nur konfigurierte Origins aus `FRONTEND_URL` plus lokale Entwicklungs-Origins.
+- CSRF-Schutz erfolgt in diesem Projekt ueber Origin-/Referer-Pruefung fuer mutierende Requests plus SameSite-Cookie-Strategie.
+- SSE filtert Events nach Besitzer und Share-Berechtigung, bevor ein Client ein `place-created` Event erhaelt.
+- CSP ist im Backend und im Next-Middleware-Layer gesetzt. `unsafe-inline` fuer Scripts bleibt im Frontend bewusst gesetzt, damit Next-/Hydration-Kompatibilitaet nicht bricht; im Backend wird inline JavaScript nicht freigegeben.
+
+## Bekannte Hinweise und Limitations
+
+- `frontend/index.html` und `frontend/src/App.jsx` existieren noch als Legacy/Vite-Reste. Die produktive App laeuft ueber Next.js unter `frontend/app/` und `frontend/components/`.
+- Cypress kann je nach lokalem Binary-Cache Probleme machen. Die Specs liegen unter `frontend/cypress/e2e/`; in einem lokalen Lauf trat ein Cypress-Binary-Cache-Fehler mit `bad option: --smoke-test` auf.
+- Nicht ins Repo gehoeren `.env`, `.next`, `node_modules`, `.DS_Store` und lokale Build-/Cache-Artefakte.
+- Der Backend-Port ist in den Env-Beispielen `3003`; `backend/server.js` hat nur ohne gesetztes `PORT` einen Fallback auf `3001`.
+
+## Architektur
+
+Eine separate `docs/architecture.md` ist im aktuellen Repository nicht vorhanden. Die Architektur ist deshalb in dieser README dokumentiert:
+
+- Next.js stellt die UI und API-Proxy-Routen bereit.
+- Express kapselt Authentifizierung, Places, Sharing, Realtime und E-Mail-Queue.
+- Prisma verwaltet die SQLite-Persistenz fuer User, Places, private Shares und Public Share Links.
+- Auth, Places und Notification/Realtime sind als Bounded Contexts unter `backend/modules/`, `backend/middleware/` und `backend/lib/` getrennt.
+
+## Troubleshooting
 
 Wenn `npm run dev` mit `EADDRINUSE` fehlschlaegt, ist ein benoetigter Port bereits belegt. Pruefen:
 
@@ -132,8 +215,6 @@ Die App verwendet Next.js mit Server-Side Rendering (SSR), da SEO für die Reise
 **Beobachtung:** Die App erfordert sowohl gute SEO für die Reiseorte als auch hohe Interaktivität durch Karten und Formulare.
 
 **Architekturentscheidung:** Next.js mit SSR wird verwendet, da es SEO durch serverseitiges Rendering unterstützt und gleichzeitig Client-Side Rendering für Interaktivität ermöglicht. Vite wäre schneller in der Entwicklung, bietet aber keine native SSR-Unterstützung.
-
-**Beobachtung:** Die App erfordert sowohl gute SEO für die Reiseorte als auch hohe Interaktivität durch Karten und Formulare.
 
 ## Backend Refactor: Bestandsaufnahme und Modulgrenzen
 
@@ -240,8 +321,8 @@ Kriterium | SSE | WebSockets
 Richtung | Server → Client | Bidirektional
 Komplexität im Code | Gering | Mittel
 Reconnect bei Verbindungsabbruch | Automatisch (Browser) | Manuell / socket.io übernimmt
-Geeignet für mein Projekt
-Warum? | Die App benötigt vor allem Server-Updates, wenn andere Nutzer neue Orte anlegen. | WebSockets sind praktisch, weil der Client beim Erstellen des Ortes aktiv ein Ereignis abschickt und andere Browser sofort informiert.
+Geeignet für mein Projekt | Ja, fuer serverseitige Updates an berechtigte Clients. | Ja, fuer bidirektionale Events zwischen Client und Server. |
+Warum? | Die App benötigt vor allem Server-Updates, wenn andere Nutzer neue Orte anlegen. | WebSockets sind praktisch, weil der Client beim Erstellen des Ortes aktiv ein Ereignis abschickt und andere Browser sofort informiert. |
 
 **Was passiert beim Server-Neustart?**
 Verbundene Clients verlieren die Verbindung. `EventSource` reconnectt automatisch nach dem Neustart, und socket.io bemüht sich ebenfalls um Reconnect. Während der Downtime gehen währenddessen eintreffende Aktualisierungen verloren, die nach Wiederverbindung nicht automatisch nachgeholt werden.
@@ -252,9 +333,9 @@ In dieser App profitieren vor allem kollaborative Änderungen wie Orte, die von 
 ### Benachrichtigungsanalyse
 Event | AppNotification sinnvoll? | Typ | Kanal | Begründung
 --- | --- | --- | --- | ---
-Neuer Ort angelegt | Teilweise | Transactional | E-Mail | Aktuell gibt es keine direkte Teilen/Zuordnung, deshalb ist eine Bestätigung an den Ersteller sinnvoll; der Ort-Owner muss das Ergebnis nachvollziehen können.
+Neuer Ort angelegt | Teilweise | Transactional | E-Mail | Eine Bestätigung an den Ersteller ist sinnvoll; geteilte Orte werden zusätzlich über Sharing- und Realtime-Mechanismen sichtbar.
 Ort gelöscht | Nein | - | keiner | In der aktuellen App betrifft Löschen nur den eigenen Nutzer, eine zusätzliche Notification wäre redundant.
-Passwort geändert / Login | Nein | - | keiner | Es gibt noch keine expliziten Sicherheitsflows in der App, und Login/Aktualisierung geschieht lokal.
+Passwort oder E-Mail geändert | Teilweise | Security | keiner im aktuellen Stand | Alte Tokens werden über `tokenVersion` invalidiert; eine zusätzliche Sicherheitsmail wäre ein möglicher Ausbau.
 
 - Gibt es Events, bei denen der Nutzer sofort reagieren muss – oder reicht eine Mail, die er später liest? 
   - In unserem Modell reicht eine Mail später; es gibt keinen dringenden Assign- oder Sicherheits-Alarm, der unmittelbares Handeln erfordert.
@@ -280,20 +361,31 @@ Die E-Mail wird in `backend/lib/emailQueue.js` asynchron in eine lokale Queue ge
 ## Datenmodell
 
 ```
-users                         places
-------------------------      -------------------------------
-id (PK, not null)             id (PK, not null)
-email (not null, unique)      title (not null)
-name (not null)               description
-                               category
-                               lat (not null)
-                               lng (not null)
-                               userId (FK -> users.id, not null)
+users                          places
+-------------------------      --------------------------------
+id (PK, not null)              id (PK, not null)
+email (not null, unique)       title (not null)
+name (not null)                description
+passwordHash (not null)        category
+tokenVersion (not null)        tripName
+createdAt (not null)           status
+                                moodTags
+                                lat (not null)
+                                lng (not null)
+                                userId (FK -> users.id, not null)
+
+shared_places                  public_place_shares
+-------------------------      --------------------------------
+id (PK, not null)              id (PK, not null)
+placeId (FK, not null)         placeId (FK, unique, not null)
+recipientId (FK, not null)     tokenHash (unique, not null)
+sharedById (FK, not null)      createdAt (not null)
+createdAt (not null)           disabledAt
 ```
 
-**Beziehungen:** users 1:n places (ein User kann viele Places haben).
+**Beziehungen:** users 1:n places (ein User kann viele Places haben); places 1:n shared_places fuer private Freigaben; places 1:1 public_place_shares fuer optionale Public-Share-Links.
 
-**Felder, die nicht leer sein dürfen:** id, email, name (users); id, title, lat, lng, userId (places).
+**Felder, die nicht leer sein dürfen:** id, email, name, passwordHash, tokenVersion, createdAt (users); id, title, lat, lng, userId (places); alle Foreign Keys in shared_places; id, placeId, tokenHash, createdAt in public_place_shares.
 
 ## Prisma und Persistenz
 
@@ -303,13 +395,14 @@ Das Backend nutzt Prisma als ORM und SQLite als Entwicklungsdatenbank. Die Daten
 DATABASE_URL="file:./dev.db"
 ```
 
-Die Datei `.env` ist in `backend/.gitignore` eingetragen und soll nicht committet werden. Das Prisma-Schema liegt unter `backend/prisma/schema.prisma`; die erste Migration erstellt die Tabellen `User` und `Place`.
+Die Datei `.env` ist in `backend/.gitignore` eingetragen und soll nicht committet werden. Das Prisma-Schema liegt unter `backend/prisma/schema.prisma`; die Migrationen erstellen `User`, `Place`, `SharedPlace`, `PublicPlaceShare` und `tokenVersion`.
 
 Die Place-Use-Cases verwenden Prisma im Service-Layer:
 
-- `getPlacesForUser()`: lädt ausschließlich die Orte der authentifizierten `userId`.
+- `getPlacesForUser()`: lädt eigene Orte und fuer den Nutzer freigegebene Orte.
 - `createPlace()`: erstellt einen Ort mit `prisma.place.create()`.
 - `updatePlace()` und `deletePlace()`: verwenden einen Ownership-Filter mit `id` und `userId`.
+- `sharePlace()`, `unsharePlace()` und Public-Share-Funktionen kapseln private Freigaben und oeffentliche Share-Links.
 
 Die alten Orte aus `backend/places.json` wurden einmalig mit `npm run import:places` in die SQLite-Datenbank importiert.
 
@@ -357,7 +450,7 @@ In die Datenbank gehoeren dauerhaft gespeicherte App-Daten wie Benutzer und Reis
 Das Express-Backend stellt zwei Auth-Routen bereit:
 
 - `POST /api/auth/register`: legt einen neuen User an und speichert das Passwort als bcrypt-Hash.
-- `POST /api/auth/login`: prueft E-Mail und Passwort, erstellt ein JWT mit `userId` und `email` und setzt es fuer 24 Stunden als HttpOnly Cookie `authToken`.
+- `POST /api/auth/login`: prueft E-Mail und Passwort, erstellt ein JWT mit `userId`, `email` und `tokenVersion` und setzt es fuer 24 Stunden als HttpOnly Cookie `authToken`.
 
 Der JWT-Secret liegt in `backend/.env` als `JWT_SECRET`. Bei bereits vergebener E-Mail antwortet das Backend mit `409`. Bei falscher E-Mail oder falschem Passwort antwortet es immer identisch mit `401` und der Meldung `E-Mail oder Passwort ungültig.`
 
@@ -367,10 +460,14 @@ Die früheren offenen Mock-Routen sind durch die aktuelle Modulstruktur ersetzt.
 
 | Endpoint | Anonym nutzbar? | Ownership-Schutz | Aktuelle Stelle |
 | --- | --- | --- | --- |
-| `GET /places` | Nein | `findMany({ where: { userId } })` | `modules/places/places.routes.js`, `places.service.js` |
+| `GET /places` | Nein | laedt eigene Orte plus freigegebene Orte fuer `recipientId` | `modules/places/places.routes.js`, `places.service.js` |
 | `POST /places` | Nein | neuer Ort erhält die `userId` des Tokens | `modules/places/places.routes.js`, `places.service.js` |
 | `PUT /places/:id` | Nein | Lookup mit `id` und `userId` vor dem Update | `modules/places/places.routes.js`, `places.service.js` |
 | `DELETE /places/:id` | Nein | `deleteMany({ where: { id, userId } })` | `modules/places/places.routes.js`, `places.service.js` |
+| `POST /places/:id/share` | Nein | nur Owner kann private Freigaben erstellen | `modules/places/places.routes.js`, `places.service.js` |
+| `DELETE /places/:id/share/:shareId` | Nein | nur Owner kann eigene Freigaben entfernen | `modules/places/places.routes.js`, `places.service.js` |
+| `POST /places/:id/public-share` | Nein | nur Owner kann Public-Share-Link erstellen | `modules/places/places.routes.js`, `places.service.js` |
+| `GET /places/public-shares/:token` | Ja | nur ueber nicht deaktivierten Token-Hash | `modules/places/places.routes.js`, `places.service.js` |
 
 ## Sicherheitskonzept
 
@@ -379,9 +476,10 @@ Die früheren offenen Mock-Routen sind durch die aktuelle Modulstruktur ersetzt.
 - Dadurch waren sowohl Lesefunktionen als auch Schreib- und Löschvorgänge ohne Nutzerprüfung möglich.
 
 2. JWT-Authentifizierung
-- Das Backend erstellt bei erfolgreichem Login einen JWT mit `userId` und `email`.
+- Das Backend erstellt bei erfolgreichem Login einen JWT mit `userId`, `email` und `tokenVersion`.
 - Dieser Token wird als HttpOnly-Cookie `authToken` ausgegeben und bei jedem Request automatisch mitgesendet.
 - Backend-Validierung erfolgt über `jwt.verify()`.
+- Bei sensiblen Profil-Aenderungen wird `tokenVersion` erhoeht; alte Tokens passen dann nicht mehr zum User-Datensatz und werden abgewiesen.
 
 3. Passwort-Hashing mit bcrypt
 - Passwörter werden nicht im Klartext gespeichert.
@@ -409,6 +507,6 @@ Die früheren offenen Mock-Routen sind durch die aktuelle Modulstruktur ersetzt.
 | OWASP | Status | Dateien | Relevante Zeilen | Konkrete Fixes |
 | --- | --- | --- | --- | --- |
 | A01 Broken Access Control | Abgedeckt | `backend/middleware/authenticate.js`, `backend/modules/places/places.service.js` | Auth-Middleware und Ownership-Filter | Auth-Middleware und Ownership-Checks beibehalten; neue Place-Routen immer schützen. |
-| A02 Cryptographic Failures | Verbesserungswürdig | `backend/modules/auth/auth.service.js` | JWT-Secret und Cookie-Optionen | `JWT_SECRET` setzen; in Produktion HTTPS sowie sichere Cookie-Konfiguration erzwingen. |
+| A02 Cryptographic Failures | Abgedeckt mit Produktionsanforderung | `backend/modules/auth/auth.service.js`, `backend/middleware/authenticate.js` | JWT-Secret-Pruefung und Cookie-Optionen | `JWT_SECRET` in Produktion mit mindestens 32 Zeichen setzen; HTTPS fuer sichere Cookies nutzen. |
 | A03 Injection | Abgedeckt | `backend/modules/*/*.service.js` | Prisma-Queries | Prisma beibehalten; Validierung bei wachsenden Eingabeformaten schema-basiert ergänzen. |
-| A07 Authentication Failures | Verbesserungswürdig | `backend/modules/auth/auth.service.js`, `backend/middleware/authenticate.js` | Login und JWT-Prüfung | Rate-Limitierung, Account-Lockout und Token-Rotation ergänzen. |
+| A07 Authentication Failures | Teilweise abgedeckt | `backend/server.js`, `backend/modules/auth/auth.service.js`, `backend/middleware/authenticate.js` | Login, JWT-Prüfung, `tokenVersion`, Auth-/Profil-Rate-Limits | Account-Lockout waere ein moeglicher naechster Ausbau; Rate-Limits und Token-Invalidierung sind vorhanden. |
