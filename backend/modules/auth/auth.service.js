@@ -79,6 +79,14 @@ function createConflictError(message) {
   return error;
 }
 
+function normalizeDisplayName(name) {
+  if (typeof name === 'string' && name.trim()) {
+    return name.trim();
+  }
+
+  return 'Reisende:r';
+}
+
 async function getDummyPasswordHash() {
   return dummyPasswordHashPromise;
 }
@@ -99,7 +107,7 @@ async function registerUser({ email, password, name }) {
   return prisma.user.create({
     data: {
       email: normalizedEmail,
-      name: typeof name === 'string' && name.trim() ? name.trim() : normalizedEmail,
+      name: normalizeDisplayName(name),
       passwordHash,
     },
     select: {

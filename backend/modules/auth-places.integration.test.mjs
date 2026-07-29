@@ -171,6 +171,16 @@ describe('auth edge cases', () => {
       name: 'Fresh User',
     });
 
+    const defaultNameUser = await authService.registerUser({
+      email: '  No.Name@Example.COM ',
+      password: TEST_PASSWORD,
+    });
+
+    expect(defaultNameUser).toMatchObject({
+      email: 'no.name@example.com',
+      name: 'Reisende:r',
+    });
+
     await expect(
       authService.registerUser({
         email: 'fresh.user@example.com',
@@ -523,12 +533,32 @@ describe('places auth and sharing edge cases', () => {
     });
 
     await expect(prisma.sharedPlace.count()).resolves.toBe(1);
+    const ownerPlaces = await placesService.getPlacesForUser(owner.id);
+    expect(ownerPlaces[0].shares[0]).toEqual({
+      id: expect.any(Number),
+      createdAt: expect.any(Date),
+      recipient: {
+        email: recipient.email,
+      },
+    });
+
     const recipientPlaces = await placesService.getPlacesForUser(recipient.id);
     expect(recipientPlaces[0]).toMatchObject({
       id: place.id,
       sharedWithMe: true,
       canEdit: false,
+      owner: {
+        name: owner.name,
+      },
+      sharedBy: {
+        name: owner.name,
+      },
     });
+    expect(recipientPlaces[0]).not.toHaveProperty('userId');
+    expect(recipientPlaces[0].owner).not.toHaveProperty('id');
+    expect(recipientPlaces[0].owner).not.toHaveProperty('email');
+    expect(recipientPlaces[0].sharedBy).not.toHaveProperty('id');
+    expect(recipientPlaces[0].sharedBy).not.toHaveProperty('email');
   });
 
   it('rejects sharing with yourself and returns null for missing owner resources', async () => {
@@ -542,7 +572,7 @@ describe('places auth and sharing edge cases', () => {
     });
   });
 
-  it('removes shares only for the owning user', async () => {
+  it('removes shares for the owner or the recipient', async () => {
     const owner = await createUser('unshare-owner');
     const recipient = await createUser('unshare-recipient');
     const other = await createUser('unshare-other');
@@ -552,7 +582,15 @@ describe('places auth and sharing edge cases', () => {
     const share = await prisma.sharedPlace.findFirst({ where: { placeId: place.id } });
 
     await expect(placesService.unsharePlace(place.id, other.id, share.id)).resolves.toBeNull();
-    await expect(placesService.unsharePlace(place.id, owner.id, share.id)).resolves.toMatchObject({
+    await expect(placesService.unsharePlace(place.id, recipient.id, share.id)).resolves.toEqual({
+      success: true,
+    });
+    await expect(prisma.sharedPlace.count()).resolves.toBe(0);
+
+    await placesService.sharePlace(place.id, owner.id, recipient.email);
+    const ownerShare = await prisma.sharedPlace.findFirst({ where: { placeId: place.id } });
+
+    await expect(placesService.unsharePlace(place.id, owner.id, ownerShare.id)).resolves.toMatchObject({
       id: place.id,
       shares: [],
     });

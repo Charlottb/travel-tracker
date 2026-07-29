@@ -299,16 +299,24 @@ async function getPlacesForUser(userId) {
 }
 
 function decoratePlaceForUser(place, userId) {
-  const owner = place.user;
+  const isOwner = place.userId === userId;
+  const owner = isOwner
+    ? place.user
+    : {
+        name: place.user?.name,
+      };
   const ownShares = Array.isArray(place.shares)
     ? place.shares.map((share) => ({
         id: share.id,
         createdAt: share.createdAt,
-        recipient: share.recipient,
-        sharedBy: share.sharedBy,
+        recipient: {
+          email: share.recipient?.email,
+        },
       }))
     : [];
-  const shareForCurrentUser = ownShares.find((share) => share.recipient?.id === userId);
+  const shareForCurrentUser = Array.isArray(place.shares)
+    ? place.shares.find((share) => share.recipient?.id === userId)
+    : null;
 
   return {
     id: place.id,
@@ -320,13 +328,13 @@ function decoratePlaceForUser(place, userId) {
     moodTags: place.moodTags,
     lat: place.lat,
     lng: place.lng,
-    userId: place.userId,
+    ...(isOwner ? { userId: place.userId } : {}),
     owner,
-    shares: place.userId === userId ? ownShares : [],
-    publicShare: place.userId === userId ? serializePublicShare(place.publicShare) : null,
-    sharedWithMe: place.userId !== userId,
-    sharedBy: place.userId !== userId ? shareForCurrentUser?.sharedBy || owner : null,
-    canEdit: place.userId === userId,
+    shares: isOwner ? ownShares : [],
+    publicShare: isOwner ? serializePublicShare(place.publicShare) : null,
+    sharedWithMe: !isOwner,
+    sharedBy: !isOwner ? { name: shareForCurrentUser?.sharedBy?.name || owner.name } : null,
+    canEdit: isOwner,
   };
 }
 
@@ -457,22 +465,48 @@ async function sharePlace(id, ownerId, recipientEmail) {
   return SHARE_REQUEST_PROCESSED_RESPONSE;
 }
 
-async function unsharePlace(id, ownerId, shareId) {
-  const result = await prisma.sharedPlace.deleteMany({
+async function unsharePlace(id, userId, shareId) {
+  const share = await prisma.sharedPlace.findFirst({
     where: {
       id: shareId,
       place: {
         id,
-        userId: ownerId,
+      },
+      OR: [
+        { recipientId: userId },
+        {
+          place: {
+            userId,
+          },
+        },
+      ],
+    },
+    select: {
+      id: true,
+      recipientId: true,
+      place: {
+        select: {
+          userId: true,
+        },
       },
     },
   });
 
-  if (result.count === 0) {
+  if (!share) {
     return null;
   }
 
-  return getPlaceForOwner(id, ownerId);
+  await prisma.sharedPlace.delete({
+    where: {
+      id: share.id,
+    },
+  });
+
+  if (share.place.userId === userId) {
+    return getPlaceForOwner(id, userId);
+  }
+
+  return { success: true };
 }
 
 async function createPublicShareLink(id, ownerId) {
