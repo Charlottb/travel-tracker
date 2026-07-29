@@ -19,6 +19,10 @@ const PLACE_MOOD_TAG_VALUES = new Set([
   'sonnenuntergang',
 ]);
 const MAX_TRIP_NAME_LENGTH = 80;
+const SHARE_REQUEST_PROCESSED_RESPONSE = {
+  success: true,
+  message: 'Teilanfrage verarbeitet.',
+};
 
 function createPublicShareToken() {
   return crypto.randomBytes(PUBLIC_SHARE_TOKEN_BYTES).toString('base64url');
@@ -352,9 +356,7 @@ async function sharePlace(id, ownerId, recipientEmail) {
   const recipient = await authService.findUserByEmail(recipientEmail);
 
   if (!recipient) {
-    const error = new Error('Kein registrierter Nutzer mit dieser E-Mail gefunden.');
-    error.name = 'ValidationError';
-    throw error;
+    return SHARE_REQUEST_PROCESSED_RESPONSE;
   }
 
   if (recipient.id === ownerId) {
@@ -380,7 +382,7 @@ async function sharePlace(id, ownerId, recipientEmail) {
     },
   });
 
-  return getPlaceForOwner(id, ownerId);
+  return SHARE_REQUEST_PROCESSED_RESPONSE;
 }
 
 async function unsharePlace(id, ownerId, shareId) {

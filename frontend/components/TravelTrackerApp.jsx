@@ -364,9 +364,13 @@ export default function TravelTrackerApp({ initialPlaces = [], currentUser = nul
         throw new Error(await readApiError(response));
       }
 
-      const updatedPlace = await response.json();
-      replacePlace(updatedPlace);
-      return updatedPlace;
+      const result = await response.json();
+
+      if (result?.id) {
+        replacePlace(result);
+      }
+
+      return result;
     } catch (err) {
       setError(`Fehler beim Teilen: ${err.message}`);
       throw err;

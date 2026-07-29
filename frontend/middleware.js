@@ -5,12 +5,43 @@ const PUBLIC_EXACT_PATHS = new Set(['/', '/login', '/register']);
 const PUBLIC_SEGMENT_PATHS = ['/share'];
 const AUTH_COOKIE_NAME = 'authToken';
 const JWT_SECRET = process.env.JWT_SECRET;
+const isProduction = process.env.NODE_ENV === 'production';
+const configuredBackendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || process.env.BACKEND_URL;
+
+function getOrigin(value) {
+  if (!value) {
+    return null;
+  }
+
+  try {
+    return new URL(value).origin;
+  } catch (_error) {
+    return null;
+  }
+}
+
+const connectSources = ["'self'", 'https://nominatim.openstreetmap.org'];
+const backendOrigin = getOrigin(configuredBackendUrl);
+
+if (backendOrigin) {
+  connectSources.push(backendOrigin);
+}
+
+if (!isProduction) {
+  connectSources.push(
+    'http://localhost:3000',
+    'http://localhost:3001',
+    'http://localhost:3004',
+    'ws://localhost:3001',
+  );
+}
+
 const CSP_HEADER = [
   "default-src 'self'",
   "script-src 'self'",
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob: https://cdnjs.cloudflare.com https://*.basemaps.cartocdn.com https://*.tile.openstreetmap.org",
-  "connect-src 'self' http://localhost:3000 http://localhost:3001 https://nominatim.openstreetmap.org",
+  `connect-src ${connectSources.join(' ')}`,
   "object-src 'none'",
   "frame-ancestors 'none'",
   "base-uri 'self'",

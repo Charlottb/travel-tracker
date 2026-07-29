@@ -13,7 +13,7 @@ function getJwtSecret() {
 }
 
 async function getAuthenticatedUserFromToken(token) {
-  const payload = jwt.verify(token, getJwtSecret());
+  const payload = jwt.verify(token, getJwtSecret(), { algorithms: ['HS256'] });
 
   if (
     !payload ||

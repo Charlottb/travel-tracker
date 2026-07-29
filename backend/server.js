@@ -16,20 +16,39 @@ const { registerClient, removeClient } = require('./lib/sse');
 const app = express();
 app.set('trust proxy', 1);
 
+const isProduction = process.env.NODE_ENV === 'production';
 const configuredFrontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
-const allowedOrigins = new Set([configuredFrontendUrl, 'http://localhost:3000', 'http://localhost:3002']);
+const allowedOrigins = new Set([configuredFrontendUrl]);
 const mutatingMethods = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 const backendOrigin = process.env.BACKEND_URL || `http://localhost:${process.env.PORT || 3001}`;
+const allowedRequestOrigins = new Set([configuredFrontendUrl, backendOrigin]);
+
+if (!isProduction) {
+  allowedOrigins.add('http://localhost:3000');
+  allowedOrigins.add('http://localhost:3002');
+  allowedOrigins.add('http://localhost:3004');
+  allowedRequestOrigins.add('http://localhost:3000');
+  allowedRequestOrigins.add('http://localhost:3001');
+  allowedRequestOrigins.add('http://localhost:3002');
+  allowedRequestOrigins.add('http://localhost:3004');
+}
+
 const connectSources = [
   "'self'",
   backendOrigin,
   configuredFrontendUrl,
-  'http://localhost:3000',
-  'http://localhost:3001',
-  'http://localhost:3002',
-  'ws://localhost:3001',
   'https://nominatim.openstreetmap.org',
 ];
+
+if (!isProduction) {
+  connectSources.push(
+    'http://localhost:3000',
+    'http://localhost:3001',
+    'http://localhost:3002',
+    'http://localhost:3004',
+    'ws://localhost:3001',
+  );
+}
 
 function isAllowedOrigin(origin) {
   return !origin || allowedOrigins.has(origin);
@@ -42,7 +61,7 @@ function isAllowedRequestSource(value) {
 
   try {
     const source = new URL(value);
-    return allowedOrigins.has(source.origin);
+    return allowedRequestOrigins.has(source.origin);
   } catch (_error) {
     return false;
   }
@@ -79,7 +98,7 @@ function rejectCrossSiteMutations(req, res, next) {
   const origin = req.get('origin');
   const referer = req.get('referer');
 
-  if (!origin && process.env.NODE_ENV !== 'production') {
+  if (!origin && !referer && !isProduction) {
     return next();
   }
 

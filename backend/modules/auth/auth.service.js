@@ -44,7 +44,7 @@ function createAuthToken(user) {
       tokenVersion: user.tokenVersion,
     },
     getJwtSecret(),
-    { expiresIn: '24h' },
+    { algorithm: 'HS256', expiresIn: '24h' },
   );
 }
 
