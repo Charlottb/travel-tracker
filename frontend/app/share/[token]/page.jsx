@@ -3,8 +3,8 @@ import Link from 'next/link';
 
 export const dynamic = 'force-dynamic';
 
-function getAppUrl() {
-  const requestHeaders = headers();
+async function getAppUrl() {
+  const requestHeaders = await headers();
   const host = requestHeaders.get('x-forwarded-host') || requestHeaders.get('host');
   const protocol = requestHeaders.get('x-forwarded-proto') || 'http';
 
@@ -16,7 +16,7 @@ function getAppUrl() {
 }
 
 async function getSharedPlace(token) {
-  const appUrl = getAppUrl().replace(/\/$/, '');
+  const appUrl = (await getAppUrl()).replace(/\/$/, '');
 
   try {
     const response = await fetch(`${appUrl}/api/places/public-shares/${token}`, {

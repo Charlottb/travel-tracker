@@ -4,8 +4,8 @@ import TravelTrackerApp from '../components/TravelTrackerApp';
 
 export const dynamic = 'force-dynamic';
 
-function getAppUrl() {
-  const requestHeaders = headers();
+async function getAppUrl() {
+  const requestHeaders = await headers();
   const host = requestHeaders.get('x-forwarded-host') || requestHeaders.get('host');
   const protocol = requestHeaders.get('x-forwarded-proto') || 'http';
 
@@ -17,9 +17,9 @@ function getAppUrl() {
 }
 
 async function getPlaces() {
-  const APP_URL = getAppUrl();
+  const APP_URL = await getAppUrl();
   const url = `${APP_URL.replace(/\/$/, '')}/api/places`;
-  const cookieHeader = cookies().toString();
+  const cookieHeader = (await cookies()).toString();
   
   console.log('[page.jsx] Fetching places from:', url);
   const startTime = Date.now();
@@ -59,9 +59,9 @@ async function getPlaces() {
 }
 
 async function getCurrentUser() {
-  const APP_URL = getAppUrl();
+  const APP_URL = await getAppUrl();
   const url = `${APP_URL.replace(/\/$/, '')}/api/auth/me`;
-  const cookieHeader = cookies().toString();
+  const cookieHeader = (await cookies()).toString();
 
   try {
     const response = await fetch(url, {

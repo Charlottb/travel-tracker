@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, Tooltip, ZoomControl, ScaleControl, useMap, useMapEvents } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
@@ -184,6 +184,9 @@ export default function MapView({
   onMapClick = () => {},
   onMarkerClick = () => {},
 }) {
+  const mapKey = useId();
+  const mapHostRef = useRef(null);
+  const [isMapReady, setIsMapReady] = useState(false);
   const markerIcon = useMemo(
     () =>
       new L.DivIcon({
@@ -207,63 +210,88 @@ export default function MapView({
     [],
   );
 
+  useLayoutEffect(() => {
+    const host = mapHostRef.current;
+
+    if (host) {
+      host.querySelectorAll('.leaflet-container').forEach((container) => {
+        delete container._leaflet_id;
+      });
+    }
+
+    setIsMapReady(true);
+
+    return () => {
+      if (!host) {
+        return;
+      }
+
+      host.querySelectorAll('.leaflet-container').forEach((container) => {
+        delete container._leaflet_id;
+      });
+    };
+  }, [mapKey]);
+
   return (
-    <div className="relative h-full w-full overflow-hidden bg-[#f3f5f2]">
-      <MapContainer
-        center={[51.1657, 10.4515]}
-        zoom={6}
-        className="h-full w-full"
-        scrollWheelZoom
-        zoomControl={false}
-      >
-        <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
-          className="travel-map-tiles"
-          url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
-        />
-        <ZoomControl position="bottomright" />
-        <ScaleControl position="bottomleft" imperial={false} />
-        <AddressSearchControl onSelectAddress={onMapClick} />
-        <MapClickHandler onMapClick={onMapClick} />
-        <FitPlaces places={places} />
-        {places.map((place) => (
-          <Marker
-            key={place.id}
-            position={[place.lat, place.lng]}
-            icon={markerIcon}
-            eventHandlers={{ click: () => onMarkerClick(place) }}
-          >
-            <Tooltip
-              permanent
-              direction="top"
-              offset={[0, -22]}
-              opacity={0.95}
-              className="rounded-xl border border-slate-200 bg-white/95 px-2 py-1 text-[11px] font-bold text-slate-950 shadow-lg shadow-slate-900/10"
-            >
-              {place.title}
-            </Tooltip>
-            <Popup>
-              <div className="max-w-56 space-y-2 text-sm text-slate-800">
-                <strong className="text-base text-slate-950">{place.title}</strong>
-                {place.sharedWithMe && (
-                  <p className="font-semibold text-slate-900">
-                    Geteilt von {place.sharedBy?.name || place.sharedBy?.email || place.owner?.name || place.owner?.email || 'einem anderen Nutzer'}
-                  </p>
-                )}
-                {place.description && <p className="leading-5">{place.description}</p>}
-                {place.category && <CategoryBadge category={place.category} />}
-              </div>
-            </Popup>
-          </Marker>
-        ))}
-        {selectedCoords && (
-          <Marker
-            position={[selectedCoords.lat, selectedCoords.lng]}
-            icon={selectedMarkerIcon}
-            interactive={false}
+    <div ref={mapHostRef} className="relative h-full w-full overflow-hidden bg-[#f3f5f2]">
+      {isMapReady && (
+        <MapContainer
+          key={mapKey}
+          center={[51.1657, 10.4515]}
+          zoom={6}
+          className="h-full w-full"
+          scrollWheelZoom
+          zoomControl={false}
+        >
+          <TileLayer
+            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+            className="travel-map-tiles"
+            url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
           />
-        )}
-      </MapContainer>
+          <ZoomControl position="bottomright" />
+          <ScaleControl position="bottomleft" imperial={false} />
+          <AddressSearchControl onSelectAddress={onMapClick} />
+          <MapClickHandler onMapClick={onMapClick} />
+          <FitPlaces places={places} />
+          {places.map((place) => (
+            <Marker
+              key={place.id}
+              position={[place.lat, place.lng]}
+              icon={markerIcon}
+              eventHandlers={{ click: () => onMarkerClick(place) }}
+            >
+              <Tooltip
+                permanent
+                direction="top"
+                offset={[0, -22]}
+                opacity={0.95}
+                className="rounded-xl border border-slate-200 bg-white/95 px-2 py-1 text-[11px] font-bold text-slate-950 shadow-lg shadow-slate-900/10"
+              >
+                {place.title}
+              </Tooltip>
+              <Popup>
+                <div className="max-w-56 space-y-2 text-sm text-slate-800">
+                  <strong className="text-base text-slate-950">{place.title}</strong>
+                  {place.sharedWithMe && (
+                    <p className="font-semibold text-slate-900">
+                      Geteilt von {place.sharedBy?.name || place.sharedBy?.email || place.owner?.name || place.owner?.email || 'einem anderen Nutzer'}
+                    </p>
+                  )}
+                  {place.description && <p className="leading-5">{place.description}</p>}
+                  {place.category && <CategoryBadge category={place.category} />}
+                </div>
+              </Popup>
+            </Marker>
+          ))}
+          {selectedCoords && (
+            <Marker
+              position={[selectedCoords.lat, selectedCoords.lng]}
+              icon={selectedMarkerIcon}
+              interactive={false}
+            />
+          )}
+        </MapContainer>
+      )}
       <div className="pointer-events-none absolute left-4 top-[5.25rem] z-[400] rounded-full bg-white/95 px-4 py-2 text-xs font-bold text-slate-700 shadow-lg shadow-slate-900/10 ring-1 ring-slate-200 lg:top-20">
         Klicke auf die Karte, um einen Ort hinzuzufügen
       </div>

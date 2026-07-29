@@ -1,0 +1,15 @@
+{
+  "/api/auth/[action]/route": "/api/auth/[action]",
+  "/api/auth/me/route": "/api/auth/me",
+  "/api/places/[id]/share/[shareId]/route": "/api/places/[id]/share/[shareId]",
+  "/api/places/[id]/public-share/route": "/api/places/[id]/public-share",
+  "/api/places/[id]/share/route": "/api/places/[id]/share",
+  "/api/places/[id]/route": "/api/places/[id]",
+  "/api/places/public-shares/[token]/route": "/api/places/public-shares/[token]",
+  "/api/places/route": "/api/places",
+  "/_not-found/page": "/_not-found",
+  "/register/page": "/register",
+  "/login/page": "/login",
+  "/share/[token]/page": "/share/[token]",
+  "/page": "/"
+}
