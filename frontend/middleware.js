@@ -1,7 +1,10 @@
+import { jwtVerify } from 'jose/jwt/verify';
 import { NextResponse } from 'next/server';
 
 const PUBLIC_EXACT_PATHS = new Set(['/', '/login', '/register']);
 const PUBLIC_SEGMENT_PATHS = ['/share'];
+const AUTH_COOKIE_NAME = 'authToken';
+const JWT_SECRET = process.env.JWT_SECRET;
 
 function matchesPathSegment(pathname, segmentPath) {
   return pathname === segmentPath || pathname.startsWith(`${segmentPath}/`);
@@ -14,12 +17,72 @@ function isPublicPath(pathname) {
   );
 }
 
-export function middleware(request) {
-  const { pathname } = request.nextUrl;
-  const token = request.cookies.get('authToken')?.value;
+async function verifyJwtToken(token) {
+  if (!JWT_SECRET) {
+    return false;
+  }
 
-  if (!token && !isPublicPath(pathname)) {
+  try {
+    const secret = new TextEncoder().encode(JWT_SECRET);
+    const { payload } = await jwtVerify(token, secret);
+
+    return typeof payload?.userId === 'number' && typeof payload?.email === 'string';
+  } catch (_error) {
+    return false;
+  }
+}
+
+async function validateTokenWithBackend(request) {
+  const cookie = request.headers.get('cookie');
+
+  if (!cookie) {
+    return false;
+  }
+
+  try {
+    const response = await fetch(new URL('/api/auth/me', request.url), {
+      method: 'GET',
+      cache: 'no-store',
+      headers: { cookie },
+    });
+
+    return response.ok;
+  } catch (_error) {
+    return false;
+  }
+}
+
+async function isValidAuthToken(request, token) {
+  if (await verifyJwtToken(token)) {
+    return true;
+  }
+
+  return validateTokenWithBackend(request);
+}
+
+function redirectToLoginAndClearCookie(request) {
+  const response = NextResponse.redirect(new URL('/login', request.url));
+  response.cookies.delete(AUTH_COOKIE_NAME);
+  return response;
+}
+
+export async function middleware(request) {
+  const { pathname } = request.nextUrl;
+  const token = request.cookies.get(AUTH_COOKIE_NAME)?.value;
+  const publicPath = isPublicPath(pathname);
+
+  if (!token && !publicPath) {
     return NextResponse.redirect(new URL('/login', request.url));
+  }
+
+  if (token && !(await isValidAuthToken(request, token))) {
+    if (!publicPath) {
+      return redirectToLoginAndClearCookie(request);
+    }
+
+    const response = NextResponse.next();
+    response.cookies.delete(AUTH_COOKIE_NAME);
+    return response;
   }
 
   return NextResponse.next();

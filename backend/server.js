@@ -17,6 +17,17 @@ const app = express();
 const configuredFrontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
 const allowedOrigins = new Set([configuredFrontendUrl, 'http://localhost:3000', 'http://localhost:3002']);
 const mutatingMethods = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
+const backendOrigin = process.env.BACKEND_URL || `http://localhost:${process.env.PORT || 3001}`;
+const connectSources = [
+  "'self'",
+  backendOrigin,
+  configuredFrontendUrl,
+  'http://localhost:3000',
+  'http://localhost:3001',
+  'http://localhost:3002',
+  'ws://localhost:3001',
+  'https://nominatim.openstreetmap.org',
+];
 
 function isAllowedOrigin(origin) {
   return !origin || allowedOrigins.has(origin);
@@ -80,7 +91,22 @@ const profileLimiter = rateLimit({
 
 app.use(
   helmet({
-    contentSecurityPolicy: false,
+    contentSecurityPolicy: {
+      useDefaults: true,
+      directives: {
+        defaultSrc: ["'self'"],
+        connectSrc: connectSources,
+        imgSrc: [
+          "'self'",
+          'data:',
+          'https://*.basemaps.cartocdn.com',
+          'https://*.tile.openstreetmap.org',
+          'https://cdnjs.cloudflare.com',
+        ],
+        scriptSrc: ["'self'"],
+        styleSrc: ["'self'", "'unsafe-inline'", 'https://cdnjs.cloudflare.com'],
+      },
+    },
     crossOriginResourcePolicy: false,
   }),
 );

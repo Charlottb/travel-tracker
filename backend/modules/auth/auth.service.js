@@ -5,6 +5,7 @@ const { normalizeEmail, isValidEmail, isValidPassword } = require('../../lib/val
 
 const INVALID_CREDENTIALS_MESSAGE = 'E-Mail oder Passwort ungültig.';
 const EMAIL_TAKEN_MESSAGE = 'E-Mail ist bereits vergeben.';
+const DUMMY_PASSWORD_HASH = '$2b$12$MjG0wMTx7iYv./kodfx6vOwgmuajpda8EpVuDqUOEDnG2gx8MfEEW';
 
 function getJwtSecret() {
   if (!process.env.JWT_SECRET) {
@@ -96,15 +97,10 @@ async function loginUser({ email, password }) {
     where: { email: normalizedEmail },
   });
 
-  if (!user || !user.passwordHash) {
-    const error = new Error(INVALID_CREDENTIALS_MESSAGE);
-    error.name = 'ValidationError';
-    throw error;
-  }
+  const passwordHash = user?.passwordHash || DUMMY_PASSWORD_HASH;
+  const passwordMatches = await bcrypt.compare(password, passwordHash);
 
-  const passwordMatches = await bcrypt.compare(password, user.passwordHash);
-
-  if (!passwordMatches) {
+  if (!user || !user.passwordHash || !passwordMatches) {
     const error = new Error(INVALID_CREDENTIALS_MESSAGE);
     error.name = 'ValidationError';
     throw error;

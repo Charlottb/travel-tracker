@@ -1,6 +1,7 @@
 const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:3001';
 const ALLOWED_POST_ACTIONS = new Set(['register', 'login', 'logout']);
 const ALLOWED_PATCH_ACTIONS = new Set(['profile']);
+const isProduction = process.env.NODE_ENV === 'production';
 
 async function proxyAuthRequest(request, { action, method }) {
   try {
@@ -51,7 +52,7 @@ async function proxyAuthRequest(request, { action, method }) {
     } else if ((action === 'login' || action === 'profile') && backendJson?.token) {
       responseHeaders.append(
         'set-cookie',
-        `authToken=${encodeURIComponent(backendJson.token)}; Path=/; Max-Age=${24 * 60 * 60}; HttpOnly; SameSite=Lax`,
+        `authToken=${encodeURIComponent(backendJson.token)}; Path=/; Max-Age=${24 * 60 * 60}; HttpOnly; SameSite=Lax${isProduction ? '; Secure' : ''}`,
       );
     }
 

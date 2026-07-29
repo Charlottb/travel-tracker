@@ -46,12 +46,6 @@ export default function LoginPage() {
         return;
       }
 
-      if (typeof window !== 'undefined' && data.token) {
-        const expiry = new Date(Date.now() + 24 * 60 * 60 * 1000).toUTCString();
-        const secureFlag = window.location.protocol === 'https:' ? '; Secure' : '';
-        document.cookie = `authToken=${encodeURIComponent(data.token)}; path=/; expires=${expiry}; max-age=${24 * 60 * 60}; SameSite=Lax${secureFlag}`;
-      }
-
       window.location.assign('/');
     } catch (err) {
       console.error('[LoginPage] Login failed:', err);
