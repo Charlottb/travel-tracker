@@ -1,3 +1,5 @@
+import { rejectInvalidMutationOrigin } from '../../places/proxyUtils';
+
 const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:3001';
 const ALLOWED_POST_ACTIONS = new Set(['register', 'login', 'logout']);
 const ALLOWED_PATCH_ACTIONS = new Set(['profile']);
@@ -69,6 +71,11 @@ async function proxyAuthRequest(request, { action, method }) {
 }
 
 export async function POST(request, { params }) {
+  const invalidOriginResponse = rejectInvalidMutationOrigin(request);
+  if (invalidOriginResponse) {
+    return invalidOriginResponse;
+  }
+
   const { action } = await params;
 
   if (!ALLOWED_POST_ACTIONS.has(action)) {
@@ -79,6 +86,11 @@ export async function POST(request, { params }) {
 }
 
 export async function PATCH(request, { params }) {
+  const invalidOriginResponse = rejectInvalidMutationOrigin(request);
+  if (invalidOriginResponse) {
+    return invalidOriginResponse;
+  }
+
   const { action } = await params;
 
   if (!ALLOWED_PATCH_ACTIONS.has(action)) {

@@ -5,6 +5,16 @@ const PUBLIC_EXACT_PATHS = new Set(['/', '/login', '/register']);
 const PUBLIC_SEGMENT_PATHS = ['/share'];
 const AUTH_COOKIE_NAME = 'authToken';
 const JWT_SECRET = process.env.JWT_SECRET;
+const CSP_HEADER = [
+  "default-src 'self'",
+  "script-src 'self' 'unsafe-inline'",
+  "style-src 'self' 'unsafe-inline'",
+  "img-src 'self' data: blob: https://cdnjs.cloudflare.com https://*.basemaps.cartocdn.com https://*.tile.openstreetmap.org",
+  "connect-src 'self' http://localhost:3000 http://localhost:3001 https://nominatim.openstreetmap.org",
+  "object-src 'none'",
+  "frame-ancestors 'none'",
+  "base-uri 'self'",
+].join('; ');
 
 function matchesPathSegment(pathname, segmentPath) {
   return pathname === segmentPath || pathname.startsWith(`${segmentPath}/`);
@@ -63,6 +73,11 @@ async function isValidAuthToken(request, token) {
 function redirectToLoginAndClearCookie(request) {
   const response = NextResponse.redirect(new URL('/login', request.url));
   response.cookies.delete(AUTH_COOKIE_NAME);
+  return applySecurityHeaders(response);
+}
+
+function applySecurityHeaders(response) {
+  response.headers.set('Content-Security-Policy', CSP_HEADER);
   return response;
 }
 
@@ -72,7 +87,7 @@ export async function middleware(request) {
   const publicPath = isPublicPath(pathname);
 
   if (!token && !publicPath) {
-    return NextResponse.redirect(new URL('/login', request.url));
+    return applySecurityHeaders(NextResponse.redirect(new URL('/login', request.url)));
   }
 
   if (token && !(await isValidAuthToken(request, token))) {
@@ -82,10 +97,10 @@ export async function middleware(request) {
 
     const response = NextResponse.next();
     response.cookies.delete(AUTH_COOKIE_NAME);
-    return response;
+    return applySecurityHeaders(response);
   }
 
-  return NextResponse.next();
+  return applySecurityHeaders(NextResponse.next());
 }
 
 export const config = {

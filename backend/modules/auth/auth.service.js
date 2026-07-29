@@ -1,3 +1,4 @@
+const crypto = require('crypto');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const prisma = require('../../lib/prisma');
@@ -5,10 +6,9 @@ const { normalizeEmail, isValidEmail, isValidPassword } = require('../../lib/val
 
 const INVALID_CREDENTIALS_MESSAGE = 'E-Mail oder Passwort ungültig.';
 const EMAIL_TAKEN_MESSAGE = 'E-Mail ist bereits vergeben.';
-const DUMMY_PASSWORD = 'not-a-real-user-password';
 const dummyPasswordHashPromise = process.env.DUMMY_PASSWORD_HASH
   ? Promise.resolve(process.env.DUMMY_PASSWORD_HASH)
-  : bcrypt.hash(DUMMY_PASSWORD, 12);
+  : bcrypt.hash(crypto.randomBytes(32).toString('hex'), 12);
 
 function getJwtSecret() {
   if (!process.env.JWT_SECRET) {
@@ -150,6 +150,7 @@ async function getUserProfile(userId) {
 async function updateUserProfile(userId, { email, currentPassword, newPassword }) {
   const updates = {};
   const normalizedEmail = typeof email === 'string' ? normalizeEmail(email) : '';
+  const isPasswordChanging = typeof newPassword === 'string' && newPassword.length > 0;
   const currentUser = await prisma.user.findUnique({
     where: { id: userId },
     select: {
@@ -164,6 +165,27 @@ async function updateUserProfile(userId, { email, currentPassword, newPassword }
     throw error;
   }
 
+  const isEmailChanging = Boolean(normalizedEmail && normalizedEmail !== currentUser.email);
+  const requiresCurrentPassword = isEmailChanging || isPasswordChanging;
+
+  if (requiresCurrentPassword) {
+    if (typeof currentPassword !== 'string' || currentPassword.length === 0) {
+      const error = new Error('Bitte gib dein aktuelles Passwort ein.');
+      error.name = 'ValidationError';
+      throw error;
+    }
+
+    const passwordMatches = currentUser.passwordHash
+      ? await bcrypt.compare(currentPassword, currentUser.passwordHash)
+      : false;
+
+    if (!passwordMatches) {
+      const error = new Error('Das aktuelle Passwort ist falsch.');
+      error.name = 'ValidationError';
+      throw error;
+    }
+  }
+
   if (normalizedEmail) {
     if (!isValidEmail(normalizedEmail)) {
       const error = new Error('Bitte gib eine gültige E-Mail-Adresse ein.');
@@ -171,23 +193,7 @@ async function updateUserProfile(userId, { email, currentPassword, newPassword }
       throw error;
     }
 
-    if (normalizedEmail !== currentUser.email) {
-      if (typeof currentPassword !== 'string' || currentPassword.length === 0) {
-        const error = new Error('Bitte gib dein aktuelles Passwort ein, um die E-Mail-Adresse zu ändern.');
-        error.name = 'ValidationError';
-        throw error;
-      }
-
-      const passwordMatches = currentUser.passwordHash
-        ? await bcrypt.compare(currentPassword, currentUser.passwordHash)
-        : false;
-
-      if (!passwordMatches) {
-        const error = new Error('Das aktuelle Passwort ist falsch.');
-        error.name = 'ValidationError';
-        throw error;
-      }
-
+    if (isEmailChanging) {
       const existingUser = await prisma.user.findFirst({
         where: {
           email: normalizedEmail,
@@ -204,25 +210,9 @@ async function updateUserProfile(userId, { email, currentPassword, newPassword }
     }
   }
 
-  if (typeof newPassword === 'string' && newPassword.length > 0) {
+  if (isPasswordChanging) {
     if (!isValidPassword(newPassword)) {
       const error = new Error('Das neue Passwort muss mindestens 8 Zeichen lang sein.');
-      error.name = 'ValidationError';
-      throw error;
-    }
-
-    if (typeof currentPassword !== 'string' || currentPassword.length === 0) {
-      const error = new Error('Bitte gib dein aktuelles Passwort ein.');
-      error.name = 'ValidationError';
-      throw error;
-    }
-
-    const passwordMatches = currentUser.passwordHash
-      ? await bcrypt.compare(currentPassword, currentUser.passwordHash)
-      : false;
-
-    if (!passwordMatches) {
-      const error = new Error('Das aktuelle Passwort ist falsch.');
       error.name = 'ValidationError';
       throw error;
     }

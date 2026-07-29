@@ -33,7 +33,7 @@ export function validatePublicShareTokenParam(value) {
 }
 
 function getRequestHost(request) {
-  return request.headers.get('x-forwarded-host') || request.headers.get('host');
+  return request.headers.get('host');
 }
 
 export function rejectInvalidMutationOrigin(request) {
