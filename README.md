@@ -134,7 +134,9 @@ npm --prefix frontend run dev
 | `npm run test:coverage` | Fuehrt Backend- und Frontend-Tests mit Coverage aus. |
 | `npm run build` | Generiert Prisma Client und baut das Next.js-Frontend. |
 
-## Tests
+## Qualitätschecks
+
+### Tests & Coverage
 
 ```bash
 npm run test
@@ -143,9 +145,9 @@ npm run test:e2e
 npm run test:coverage
 ```
 
-`npm run test` fuehrt Backend/Frontend Vitest und danach Cypress E2E aus. `npm run test:e2e` startet die App automatisch und fuehrt Cypress aus.
+`npm run test` fuehrt Backend/Frontend Vitest und danach Cypress E2E aus. `npm run test:e2e` startet die App automatisch und fuehrt Cypress aus. Die Backend-Tests und Coverage-Auswertung wurden mit Vitest durchgefuehrt.
 
-Aktuelle Coverage-Werte:
+Aktuelle Backend-Coverage:
 
 | Metrik | Wert |
 | --- | ---: |
@@ -158,6 +160,36 @@ Coverage-Reports:
 
 - Backend: `backend/coverage/index.html`
 - Frontend: `frontend/coverage/index.html`
+
+### E2E-Tests
+
+Die Cypress-E2E-Tests decken zentrale User-Flows ab:
+
+- Landingpage
+- Registrierung
+- Login
+- Ort erstellen
+- Ort loeschen
+- Profil
+- Logout
+
+### Security-Checks
+
+Das Projekt wurde mit CodeSniper geprueft. Mehrere Findings wurden gezielt behoben, unter anderem:
+
+- JWT-Authentifizierung ueber HttpOnly Cookies
+- Token-Invalidierung ueber `tokenVersion`
+- Rate Limiting fuer sensible Endpunkte
+- CORS-Allowlist
+- CSRF-Schutz ueber Origin-/Referer-Pruefung und SameSite Cookie
+- SSE-Events nur fuer berechtigte Nutzer
+- Content Security Policy und zusaetzliche Frontend-Security-Header
+
+Einzelne Scanner-Hinweise wurden bewusst dokumentiert statt umgesetzt, wenn sie fuer den Projektumfang ein hohes Risiko fuer bestehende Funktionen bedeutet haetten, zum Beispiel ein vollstaendiger Umbau auf tokenbasierten CSRF-Schutz kurz vor der Abgabe.
+
+### Lighthouse
+
+Zusaetzlich wurde ein Lighthouse-Check durchgefuehrt, um Performance, Accessibility, Best Practices und SEO zu pruefen. Relevante Optimierungen wurden priorisiert, insbesondere beim Ladeverhalten und bei unnoetiger Frontend-Arbeit.
 
 ## Security-Hinweise
 
