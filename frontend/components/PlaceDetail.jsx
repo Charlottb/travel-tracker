@@ -120,7 +120,7 @@ export default function PlaceDetail({
             <button type="button" onClick={onEdit} className="rounded-full bg-emerald-500 px-4 py-3 text-sm font-bold text-slate-950 shadow-sm shadow-emerald-200 transition hover:bg-emerald-400">
               Bearbeiten
             </button>
-            <button type="button" onClick={() => onDelete(place)} className="rounded-full border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-bold text-rose-700 transition hover:bg-rose-100">
+            <button type="button" data-cy="delete-place" onClick={() => onDelete(place)} className="rounded-full border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-bold text-rose-700 transition hover:bg-rose-100">
               Löschen
             </button>
           </div>
@@ -198,6 +198,7 @@ export default function PlaceDetail({
             <form onSubmit={handleShare} className="mt-3 space-y-3">
               <input
                 type="email"
+                data-cy="share-email"
                 value={shareEmail}
                 onChange={(event) => setShareEmail(event.target.value)}
                 placeholder="email@example.com"
@@ -207,6 +208,7 @@ export default function PlaceDetail({
               {shareError && <p className="text-sm font-medium text-rose-700">{shareError}</p>}
               <button
                 type="submit"
+                data-cy="share-submit"
                 disabled={isLoading}
                 className="w-full rounded-full bg-slate-950 px-4 py-3 text-sm font-bold text-white transition hover:bg-slate-800 disabled:cursor-wait disabled:bg-slate-400"
               >

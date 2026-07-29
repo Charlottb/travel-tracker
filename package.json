@@ -6,7 +6,10 @@
     "dev": "node scripts/dev.mjs",
     "prisma:generate": "npm --prefix backend run prisma:generate",
     "prisma:migrate": "npm --prefix backend run prisma:migrate",
-    "test": "npm --prefix backend test && npm --prefix frontend test",
+    "test": "npm run test:all",
+    "test:unit": "npm --prefix backend test && npm --prefix frontend test",
+    "test:e2e": "node scripts/e2e.mjs",
+    "test:all": "npm run test:unit && npm run test:e2e",
     "test:coverage": "npm --prefix backend run test:coverage && npm --prefix frontend run test:coverage",
     "build": "npm --prefix backend run prisma:generate && npm --prefix frontend run build"
   }

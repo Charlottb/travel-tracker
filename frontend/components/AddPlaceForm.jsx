@@ -90,13 +90,14 @@ export default function AddPlaceForm({ coords, place = null, onSave, onCancel })
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-5 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm shadow-slate-900/5">
+    <form data-cy="place-form" onSubmit={handleSubmit} className="space-y-5 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm shadow-slate-900/5">
       <button type="button" onClick={onCancel} className="rounded-full px-2 py-1 text-sm font-semibold text-slate-500 transition hover:bg-emerald-50 hover:text-slate-900">
         ← Abbrechen
       </button>
       <div>
         <label className="block text-sm font-bold text-slate-800">Titel</label>
         <input
+          data-cy="place-title"
           value={title}
           onChange={(event) => setTitle(event.target.value)}
           className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-950 outline-none transition focus:border-emerald-300 focus:ring-4 focus:ring-emerald-100"
@@ -106,6 +107,7 @@ export default function AddPlaceForm({ coords, place = null, onSave, onCancel })
       <div>
         <label className="block text-sm font-bold text-slate-800">Beschreibung optional</label>
         <textarea
+          data-cy="place-description"
           value={description}
           onChange={(event) => setDescription(event.target.value)}
           className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-950 outline-none transition focus:border-emerald-300 focus:ring-4 focus:ring-emerald-100"
@@ -203,7 +205,7 @@ export default function AddPlaceForm({ coords, place = null, onSave, onCancel })
         <button type="button" onClick={onCancel} className="rounded-full border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-700 transition hover:bg-slate-100">
           Abbrechen
         </button>
-        <button type="submit" className="rounded-full bg-emerald-500 px-4 py-3 text-sm font-bold text-slate-950 shadow-sm shadow-emerald-200 transition hover:bg-emerald-400">
+        <button type="submit" data-cy="place-submit" className="rounded-full bg-emerald-500 px-4 py-3 text-sm font-bold text-slate-950 shadow-sm shadow-emerald-200 transition hover:bg-emerald-400">
           {isEditing ? 'Änderungen speichern' : 'Ort speichern'}
         </button>
       </div>

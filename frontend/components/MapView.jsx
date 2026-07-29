@@ -233,7 +233,7 @@ export default function MapView({
   }, [mapKey]);
 
   return (
-    <div ref={mapHostRef} className="relative h-full w-full overflow-hidden bg-[#f3f5f2]">
+    <div ref={mapHostRef} data-cy="map" className="relative h-full w-full overflow-hidden bg-[#f3f5f2]">
       {isMapReady && (
         <MapContainer
           key={mapKey}

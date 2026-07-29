@@ -14,6 +14,7 @@ export default function PlaceCard({ place, onClick, highlight = false, anchorId 
     <button
       id={anchorId}
       type="button"
+      data-cy="place-card"
       onClick={() => onClick?.(place)}
       className={`group w-full rounded-2xl border px-4 py-4 text-left shadow-sm transition duration-200 hover:-translate-y-px hover:border-slate-300 hover:bg-white hover:shadow-md hover:shadow-slate-900/8 ${
         highlight ? 'border-emerald-300 bg-emerald-50/60 ring-2 ring-emerald-100' : 'border-slate-200 bg-white/95'

@@ -31,7 +31,9 @@ Danach ist die App unter `http://localhost:3000` erreichbar. Registrierung und L
 | `npm run dev` | Startet Backend und Frontend gemeinsam in einem Terminal. |
 | `npm run prisma:generate` | Erstellt den Prisma Client im Backend. |
 | `npm run prisma:migrate` | Spielt vorhandene Prisma-Migrationen nicht-interaktiv gegen SQLite ein. |
-| `npm run test` | Fuehrt Backend- und Frontend-Vitest-Tests aus. |
+| `npm run test` | Fuehrt alle Tests aus: Backend/Frontend Vitest plus Cypress E2E. |
+| `npm run test:unit` | Fuehrt nur Backend- und Frontend-Vitest-Tests aus. |
+| `npm run test:e2e` | Startet die App und fuehrt Cypress E2E aus. |
 | `npm run test:coverage` | Fuehrt Backend- und Frontend-Tests mit Coverage aus. |
 | `npm run build` | Generiert Prisma Client und baut das Next.js-Frontend. |
 
@@ -71,11 +73,28 @@ npm run test
 npm run test:coverage
 ```
 
-Optional fuer E2E-Tests:
+`npm run test` startet fuer Cypress automatisch Frontend und Backend. Der Coverage-Report wird hier erzeugt:
+
+- Backend: `backend/coverage/index.html`
+- Frontend: `frontend/coverage/index.html`
+
+Optional nur fuer E2E-Tests:
 
 ```bash
-npm --prefix frontend run cy:run
+npm run test:e2e
 ```
+
+### Hinweis zu Cypress lokal
+
+Die Cypress-E2E-Tests liegen unter `frontend/cypress/e2e/auth.cy.js` und decken Landingpage, Registrierung, Login, Ort erstellen/löschen, Profil und Logout ab.
+
+Auf dem lokalen Mac konnte Cypress wegen eines defekten/inkompatiblen Cypress-Binary-Caches nicht final gestartet werden (`bad option: --smoke-test`). `npx cypress install --force` wurde ausgeführt, der Fehler blieb bestehen.
+
+Backend-Tests und Coverage laufen erfolgreich:
+- Statements: 85.55%
+- Branches: 83.87%
+- Functions: 91.66%
+- Lines: 85.44%
 
 Wenn am Prisma-Schema gearbeitet wird, kann eine neue Entwicklungs-Migration im Backend erzeugt werden:
 

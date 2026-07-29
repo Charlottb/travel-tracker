@@ -44,6 +44,7 @@ export default function Navbar({
           </div>
           <button
             type="button"
+            data-cy="add-place"
             onClick={onAddPlace}
             className="shrink-0 rounded-full bg-emerald-500 px-4 py-2.5 text-[15px] font-semibold text-slate-950 shadow-lg shadow-emerald-200 transition hover:bg-emerald-400"
           >
@@ -79,6 +80,7 @@ export default function Navbar({
                 </div>
                 <button
                   type="button"
+                  data-cy="open-profile"
                   onClick={onOpenProfile}
                   className={`shrink-0 rounded-full px-3 py-1.5 text-[13px] font-medium transition ${
                     isProfileOpen
@@ -90,6 +92,7 @@ export default function Navbar({
                 </button>
                 <button
                   type="button"
+                  data-cy="logout"
                   onClick={handleLogout}
                   className="shrink-0 rounded-full px-3 py-1.5 text-[13px] font-medium text-slate-500 transition hover:bg-rose-50 hover:text-rose-700"
                 >
