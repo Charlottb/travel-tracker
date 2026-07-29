@@ -6,6 +6,16 @@ const { enqueuePlaceCreatedEmail } = require('../../lib/emailQueue');
 
 const PUBLIC_SHARE_TOKEN_BYTES = 32;
 const PUBLIC_SHARE_TOKEN_PATTERN = /^[A-Za-z0-9_-]{32,128}$/;
+const MAX_TITLE_LENGTH = 120;
+const MAX_DESCRIPTION_LENGTH = 1000;
+const PLACE_CATEGORY_VALUES = new Set([
+  'Restaurant',
+  'Hotel',
+  'Sehensw\u00fcrdigkeit',
+  'Natur',
+  'Shopping',
+  'Sonstiges',
+]);
 const PLACE_STATUS_VALUES = new Set(['want_to_visit', 'planned', 'visited', 'favorite']);
 const PLACE_MOOD_TAG_VALUES = new Set([
   'ruhig',
@@ -24,6 +34,12 @@ const SHARE_REQUEST_PROCESSED_RESPONSE = {
   message: 'Teilanfrage verarbeitet.',
 };
 
+function createValidationError(message) {
+  const error = new Error(message);
+  error.name = 'ValidationError';
+  return error;
+}
+
 function createPublicShareToken() {
   return crypto.randomBytes(PUBLIC_SHARE_TOKEN_BYTES).toString('base64url');
 }
@@ -34,9 +50,7 @@ function hashPublicShareToken(token) {
 
 function validatePublicShareToken(token) {
   if (typeof token !== 'string' || !PUBLIC_SHARE_TOKEN_PATTERN.test(token)) {
-    const error = new Error('Ungueltiger Share-Link.');
-    error.name = 'ValidationError';
-    throw error;
+    throw createValidationError('Ungueltiger Share-Link.');
   }
 }
 
@@ -57,17 +71,89 @@ function serializePublicShare(publicShare, token = null) {
   };
 }
 
-function validatePlaceData({ lat, lng, title }) {
-  if (
-    typeof lat !== 'number' ||
-    typeof lng !== 'number' ||
-    typeof title !== 'string' ||
-    title.trim() === ''
-  ) {
-    const error = new Error('Invalid data: lat and lng must be numbers, title must be a non-empty string');
-    error.name = 'ValidationError';
-    throw error;
+function normalizeRequiredText(value, fieldName, maxLength) {
+  if (typeof value !== 'string') {
+    throw createValidationError(`Invalid data: ${fieldName} must be a string`);
   }
+
+  const trimmedValue = value.trim();
+
+  if (!trimmedValue) {
+    throw createValidationError(`Invalid data: ${fieldName} is required`);
+  }
+
+  if (trimmedValue.length > maxLength) {
+    throw createValidationError(`Invalid data: ${fieldName} must be at most ${maxLength} characters`);
+  }
+
+  return trimmedValue;
+}
+
+function normalizeOptionalText(value, fieldName, maxLength) {
+  if (value == null || value === '') {
+    return null;
+  }
+
+  if (typeof value !== 'string') {
+    throw createValidationError(`Invalid data: ${fieldName} must be a string`);
+  }
+
+  const trimmedValue = value.trim();
+
+  if (!trimmedValue) {
+    return null;
+  }
+
+  if (trimmedValue.length > maxLength) {
+    throw createValidationError(`Invalid data: ${fieldName} must be at most ${maxLength} characters`);
+  }
+
+  return trimmedValue;
+}
+
+function normalizeCategory(category) {
+  if (category == null || category === '') {
+    return null;
+  }
+
+  if (typeof category !== 'string') {
+    throw createValidationError('Invalid data: category must be a string');
+  }
+
+  const trimmedCategory = category.trim();
+
+  if (!trimmedCategory) {
+    return null;
+  }
+
+  if (!PLACE_CATEGORY_VALUES.has(trimmedCategory)) {
+    throw createValidationError('Invalid data: category is not allowed');
+  }
+
+  return trimmedCategory;
+}
+
+function normalizeCoordinate(value, fieldName, min, max) {
+  if (typeof value !== 'number' || !Number.isFinite(value)) {
+    throw createValidationError(`Invalid data: ${fieldName} must be a finite number`);
+  }
+
+  if (value < min || value > max) {
+    throw createValidationError(`Invalid data: ${fieldName} is out of range`);
+  }
+
+  return value;
+}
+
+function validatePlaceData(placeData) {
+  return {
+    ...placeData,
+    title: normalizeRequiredText(placeData?.title, 'title', MAX_TITLE_LENGTH),
+    description: normalizeOptionalText(placeData?.description, 'description', MAX_DESCRIPTION_LENGTH),
+    category: normalizeCategory(placeData?.category),
+    lat: normalizeCoordinate(placeData?.lat, 'lat', -90, 90),
+    lng: normalizeCoordinate(placeData?.lng, 'lng', -180, 180),
+  };
 }
 
 function normalizeTripName(tripName) {
@@ -76,9 +162,7 @@ function normalizeTripName(tripName) {
   }
 
   if (typeof tripName !== 'string') {
-    const error = new Error('Invalid data: tripName must be a string');
-    error.name = 'ValidationError';
-    throw error;
+    throw createValidationError('Invalid data: tripName must be a string');
   }
 
   const trimmedTripName = tripName.trim();
@@ -88,9 +172,7 @@ function normalizeTripName(tripName) {
   }
 
   if (trimmedTripName.length > MAX_TRIP_NAME_LENGTH) {
-    const error = new Error(`Invalid data: tripName must be at most ${MAX_TRIP_NAME_LENGTH} characters`);
-    error.name = 'ValidationError';
-    throw error;
+    throw createValidationError(`Invalid data: tripName must be at most ${MAX_TRIP_NAME_LENGTH} characters`);
   }
 
   return trimmedTripName;
@@ -102,9 +184,7 @@ function normalizeStatus(status) {
   }
 
   if (typeof status !== 'string' || !PLACE_STATUS_VALUES.has(status)) {
-    const error = new Error('Invalid data: status is not allowed');
-    error.name = 'ValidationError';
-    throw error;
+    throw createValidationError('Invalid data: status is not allowed');
   }
 
   return status;
@@ -120,9 +200,7 @@ function parseMoodTags(moodTags) {
   }
 
   if (typeof moodTags !== 'string') {
-    const error = new Error('Invalid data: moodTags must be a JSON string');
-    error.name = 'ValidationError';
-    throw error;
+    throw createValidationError('Invalid data: moodTags must be a JSON string');
   }
 
   try {
@@ -137,9 +215,7 @@ function normalizeMoodTags(moodTags) {
   const parsedMoodTags = parseMoodTags(moodTags);
 
   if (!Array.isArray(parsedMoodTags)) {
-    const error = new Error('Invalid data: moodTags must be a JSON array');
-    error.name = 'ValidationError';
-    throw error;
+    throw createValidationError('Invalid data: moodTags must be a JSON array');
   }
 
   const normalizedMoodTags = [...new Set(parsedMoodTags)];
@@ -153,21 +229,17 @@ function normalizeMoodTags(moodTags) {
   );
 
   if (hasInvalidMoodTag) {
-    const error = new Error('Invalid data: moodTags contains an unknown tag');
-    error.name = 'ValidationError';
-    throw error;
+    throw createValidationError('Invalid data: moodTags contains an unknown tag');
   }
 
   return JSON.stringify(normalizedMoodTags);
 }
 
 function buildPlacePayload({ title, description, category, tripName, status, moodTags, lat, lng, userId }) {
-  const trimmedDescription = typeof description === 'string' ? description.trim() : '';
-
   return {
-    title: title.trim(),
-    description: trimmedDescription || null,
-    category: typeof category === 'string' ? category : null,
+    title,
+    description,
+    category,
     tripName: normalizeTripName(tripName),
     status: normalizeStatus(status),
     moodTags: normalizeMoodTags(moodTags),
@@ -278,10 +350,10 @@ function decoratePublicPlace(place) {
 }
 
 async function createPlace(placeData, userId) {
-  validatePlaceData(placeData);
+  const validatedPlaceData = validatePlaceData(placeData);
 
   const newPlace = await prisma.place.create({
-    data: buildPlacePayload({ ...placeData, userId }),
+    data: buildPlacePayload({ ...validatedPlaceData, userId }),
   });
 
   const recipient = await authService.getUserNotificationRecipient(userId);
@@ -303,7 +375,7 @@ async function createPlace(placeData, userId) {
 }
 
 async function updatePlace(id, placeData, userId) {
-  validatePlaceData(placeData);
+  const validatedPlaceData = validatePlaceData(placeData);
 
   const existingPlace = await prisma.place.findFirst({
     where: {
@@ -321,7 +393,7 @@ async function updatePlace(id, placeData, userId) {
 
   const updatedPlace = await prisma.place.update({
     where: { id },
-    data: buildPlacePayload({ ...placeData, userId }),
+    data: buildPlacePayload({ ...validatedPlaceData, userId }),
   });
 
   return getPlaceForOwner(updatedPlace.id, userId);

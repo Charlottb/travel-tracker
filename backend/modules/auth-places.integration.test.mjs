@@ -65,7 +65,7 @@ async function createPlaceForUser(userId, overrides = {}) {
     {
       title: 'Test Place',
       description: 'Created in integration test',
-      category: 'stadt',
+      category: 'Natur',
       lat: 52.52,
       lng: 13.405,
       ...overrides,
@@ -415,7 +415,7 @@ describe('places auth and sharing edge cases', () => {
       placesService.updatePlace(place.id, {
         title: 'Updated Place',
         description: '',
-        category: 'natur',
+        category: 'Natur',
         tripName: '',
         status: '',
         moodTags: '',
@@ -439,6 +439,41 @@ describe('places auth and sharing edge cases', () => {
     ).rejects.toMatchObject({
       name: 'ValidationError',
     });
+  });
+
+  it('trims valid place text and rejects invalid core place fields', async () => {
+    const owner = await createUser('place-validation');
+
+    await expect(
+      placesService.createPlace({
+        title: '  Trimmed Place  ',
+        description: '  Optional description  ',
+        category: '  Restaurant  ',
+        lat: 90,
+        lng: -180,
+      }, owner.id),
+    ).resolves.toMatchObject({
+      title: 'Trimmed Place',
+      description: 'Optional description',
+      category: 'Restaurant',
+      lat: 90,
+      lng: -180,
+    });
+
+    const invalidPlaces = [
+      { title: 'x'.repeat(121), lat: 52.52, lng: 13.405 },
+      { title: 'Valid title', description: 'x'.repeat(1001), lat: 52.52, lng: 13.405 },
+      { title: 'Valid title', category: 'Museum', lat: 52.52, lng: 13.405 },
+      { title: 'Valid title', lat: Number.NaN, lng: 13.405 },
+      { title: 'Valid title', lat: 91, lng: 13.405 },
+      { title: 'Valid title', lat: 52.52, lng: -181 },
+    ];
+
+    for (const invalidPlace of invalidPlaces) {
+      await expect(
+        placesService.createPlace(invalidPlace, owner.id),
+      ).rejects.toMatchObject({ name: 'ValidationError' });
+    }
   });
 
   it('rejects invalid optional place metadata', async () => {
