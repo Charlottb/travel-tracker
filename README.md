@@ -217,6 +217,23 @@ Eine separate `docs/architecture.md` ist im aktuellen Repository nicht vorhanden
 - Prisma verwaltet die SQLite-Persistenz fuer User, Places, private Shares und Public Share Links.
 - Auth, Places und Notification/Realtime sind als Bounded Contexts unter `backend/modules/`, `backend/middleware/` und `backend/lib/` getrennt.
 
+### Architekturentscheidungen und Alternativen
+
+| Entscheidung | Gewaehlt | Alternative | Begruendung |
+| --- | --- | --- | --- |
+| Frontend-Framework | Next.js | Vite/React SPA | Next.js passt besser, weil die App geschuetzte Seiten, API-Proxy-Routen und potenziell SEO-relevante Share-/Ortsseiten hat. Vite waere einfacher und schneller in der Entwicklung, bietet aber keine vergleichbare eingebaute SSR-/Routing-Struktur. |
+| Persistenz | SQLite mit Prisma | In-Memory JSON, PostgreSQL | SQLite ist fuer lokale Entwicklung und Abgabe leichtgewichtig, reproduzierbar und ohne externen Server nutzbar. JSON waere zu fehleranfaellig fuer Nutzer-/Ownership-Beziehungen; PostgreSQL waere produktionsnaeher, aber fuer den Projektumfang schwerer aufzusetzen. |
+| Realtime | SSE plus socket.io | Nur Polling | Fuer die eigentliche App wuerde Polling oft reichen, weil Orte nicht sekundenkritisch sind. SSE/socket.io wurden bewusst als Lern- und Architekturuebung eingebaut, um serverseitige Events und bidirektionale Kommunikation zu vergleichen. |
+| Sicherheit | HttpOnly JWT-Cookie, Origin-/Referer-CSRF, CORS-Allowlist | LocalStorage-Token, eigener CSRF-Token | HttpOnly Cookies reduzieren Token-Diebstahl durch JavaScript. Ein eigener CSRF-Token waere noch robuster, haette aber kurz vor Abgabe mehr Umbau- und Regressionsrisiko bedeutet. |
+
+### Retrospektive
+
+Rueckblickend wuerde ich die Projektstruktur frueher konsequent auf Next.js ausrichten und die alten Vite-Reste (`frontend/index.html`, `frontend/src/App.jsx`) frueher entfernen, damit weniger Verwirrung entsteht. Ausserdem waere es sinnvoll gewesen, den Backend-Port von Anfang an eindeutig festzulegen, statt einen Code-Fallback auf `3001` und lokale Env-Beispiele mit `3003` nebeneinander zu haben.
+
+Bei der Datenbank war SQLite fuer die Abgabe passend. Fuer eine echte Mehrnutzer-Produktion wuerde ich aber eher PostgreSQL waehlen, weil Sharing, Public Links, Token-Invalidierung und spaetere Features wie Bilder, Audit-Logs oder Suche besser skalieren. Auch die Realtime-Funktion wuerde ich produktiv vereinfachen: Entweder klares Polling fuer diese App oder ein einheitlicher Event-Kanal, statt SSE und socket.io parallel zu betreiben.
+
+Security wurde spaet im Projekt deutlich ausgebaut. Mit dem heutigen Wissen wuerde ich Auth, CSRF, Rate Limiting und Security-Headers frueher als feste Architekturgrundlage einplanen und direkt mit Tests absichern. So waeren spaetere Scanner-Findings weniger riskant gewesen und die Dokumentation haette weniger nachtraegliche Korrekturen gebraucht.
+
 ## Troubleshooting
 
 Wenn `npm run dev` mit `EADDRINUSE` fehlschlaegt, ist ein benoetigter Port bereits belegt. Pruefen:
